@@ -1,16 +1,16 @@
+import { Stat } from "../types/ui";
+
 interface StatCardProps {
-  label: string;
-  value: string;
-  unit?: string;
+  stat: Stat;
 }
 
-export function StatCard({ label, value, unit }: StatCardProps) {
+export function StatCard({ stat }: StatCardProps) {
   return (
     <div className="card-clean p-4">
-      <p className="text-sm text-muted-foreground mb-1">{label}</p>
+      <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
       <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-semibold">{value}</span>
-        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
+        <span className="text-2xl font-semibold">{stat.value}</span>
+        {stat.unit && <span className="text-sm text-muted-foreground">{stat.unit}</span>}
       </div>
     </div>
   );
