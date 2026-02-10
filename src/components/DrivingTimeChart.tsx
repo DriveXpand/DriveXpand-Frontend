@@ -1,5 +1,9 @@
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
-import { DayValue } from "../types/api";
+
+interface DayValue {
+  day: string;
+  value: number;
+}
 
 interface DrivingTimeChartProps {
   data: DayValue[];

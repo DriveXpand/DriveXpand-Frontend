@@ -1,82 +1,71 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
-import { StatCard } from "@/components/StatCard";
-import { FunFact } from "@/components/FunFact";
 import { DrivingTimeChart } from "@/components/DrivingTimeChart";
-import { TimeOfDayChart } from "@/components/TimeOfDayChart";
-import { Achievement } from "@/components/Achievement";
-import { Warning } from "@/components/Warning";
 import { TripCard } from "@/components/TripCard";
-import { Route, Target, Flame } from "lucide-react";
-import { getVehicleStats, getVehicleAnalysis, getAchievements, getTrips } from "@/lib/api";
-import { VehicleStats, VehicleAnalysis, Achievement as ApiAchievement, Trip, SafetyEvent } from "@/types/api";
-import { UITrip, Stat, FunFact as FunFactType, Warning as WarningType } from "@/types/ui";
+import { getTrips, getTripsPerWeekday } from "@/lib/api";
+import type { TripDetailsResponse } from "@/types/api";
+import { UITrip } from "@/types/ui";
 
-const achievementDetails: { [key: string]: { description: string; icon: React.ReactNode } } = {
-  "1.000 km Club": { description: "Erste 1.000 km gefahren", icon: <Route className="w-5 h-5" /> },
-  "Frühaufsteher": { description: "10 Fahrten vor 7 Uhr", icon: <Target className="w-5 h-5" /> },
-  "Sparfuchs": { description: "Verbrauch unter 5L/100km", icon: <Flame className="w-5 h-5" /> },
-};
-
-// TODO: remove locations
-const mapTripToUITrip = (trip: Trip): UITrip => {
-  // This is a placeholder for a real location lookup based on coordinates
-  const locations = ["Berlin", "Potsdam", "Hamburg", "München"];
+const mapTripToUITrip = (trip: TripDetailsResponse): UITrip => {
   return {
-    ...trip,
-    startLocation: locations[Math.floor(Math.random() * locations.length)],
-    endLocation: locations[Math.floor(Math.random() * locations.length)],
-    context: trip.tag,
+    id: trip.id,
+    deviceId: trip.deviceId,
+    startTime: trip.startTime,
+    endTime: trip.endTime,
+    startLocation: trip.startLocation,
+    endLocation: trip.endLocation,
   };
 };
 
 export default function Index() {
-  const [stats, setStats] = useState<VehicleStats | null>(null);
-  const [analysis, setAnalysis] = useState<VehicleAnalysis | null>(null);
-  const [achievements, setAchievements] = useState<ApiAchievement[]>([]);
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<TripDetailsResponse[]>([]);
+  const [weekdayData, setWeekdayData] = useState<Array<{ day: string; value: number }>>([]);
   const [loading, setLoading] = useState(true);
+  const [deviceId] = useState<string>("default-device");
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [statsData, analysisData, achievementsData, tripsData] = await Promise.all([
-          getVehicleStats(),
-          getVehicleAnalysis(),
-          getAchievements(),
-          getTrips(),
+        const [tripsData, weekdayDataRaw] = await Promise.all([
+          getTrips(deviceId),
+          getTripsPerWeekday(deviceId),
         ]);
-        setStats(statsData);
-        setAnalysis(analysisData);
-        setAchievements(achievementsData);
-        setTrips(tripsData);
+
+        // Convert trips object to array
+        const tripsArray = Object.values(tripsData);
+        setTrips(tripsArray);
+
+        // Convert weekday data to chart format
+        const weekdayMap: Record<string, string> = {
+          MONDAY: "Mo",
+          TUESDAY: "Di",
+          WEDNESDAY: "Mi",
+          THURSDAY: "Do",
+          FRIDAY: "Fr",
+          SATURDAY: "Sa",
+          SUNDAY: "So",
+        };
+
+        const weekdayDataFormatted = Object.entries(weekdayDataRaw).map(
+          ([day, value]) => ({
+            day: weekdayMap[day] || day,
+            value: value as number,
+          })
+        );
+
+        setWeekdayData(weekdayDataFormatted);
       } catch (error) {
         console.error("Failed to fetch data:", error);
-        // Handle error state in UI
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
-
-  const statCards: Stat[] = [
-    { label: "Gefahrene Strecke", value: stats?.total_km?.toString() ?? '0', unit: "km" },
-    { label: "Durchschnittstempo", value: stats?.avg_speed?.toString() ?? '0', unit: "km/h" },
-    { label: "Fahrzeit", value: stats?.total_drive_time_minutes ? (stats.total_drive_time_minutes / 60).toFixed(1) : '0', unit: "Std" },
-    { label: "Fahrten", value: stats?.trip_count?.toString() ?? '0' },
-  ];
-
-  const funFact: FunFactType | null = stats?.total_km ? { text: `Du bist diesen Monat ${stats.total_km} km gefahren – das ist so weit wie von Berlin nach Amsterdam!` } : null;
-
-  const warnings: WarningType[] = analysis?.safety_events?.map(event => ({
-    title: event.type === 'HARD_BRAKE' ? "Starkes Bremsen erkannt" : "Starke Beschleunigung",
-    description: `Am ${new Date(event.timestamp!).toLocaleString()}. Versuche vorausschauender zu fahren.`
-  })) ?? [];
+  }, [deviceId]);
 
   const uiTrips: UITrip[] = trips.map(mapTripToUITrip);
-  
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -84,55 +73,12 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       <Header currentMonth="Januar 2026" />
-      
+
       <main className="container mx-auto py-6">
-        <section className="mb-8">
-          <p className="section-title mb-3">Übersicht</p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {statCards.map((stat, index) => (
-              <StatCard key={index} stat={stat} />
-            ))}
-          </div>
-        </section>
-
-        {funFact && (
-          <section className="mb-8">
-            <FunFact funFact={funFact} />
-          </section>
-        )}
-
-        {analysis && (
+        {weekdayData.length > 0 && (
           <section className="mb-8">
             <p className="section-title mb-3">Wann fährst du?</p>
-            <div className="grid lg:grid-cols-2 gap-3">
-              <DrivingTimeChart data={analysis.weekday_usage ?? []} title="Wochentage" />
-              <TimeOfDayChart data={analysis.time_of_day_usage ?? []} />
-            </div>
-          </section>
-        )}
-
-        <section className="mb-8">
-          <p className="section-title mb-3">Achievements</p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {achievements.map((achievement) => (
-              <Achievement 
-                key={achievement.name}
-                achievement={achievement} 
-                description={achievementDetails[achievement.name!]?.description ?? ''}
-                icon={achievementDetails[achievement.name!]?.icon}
-              />
-            ))}
-          </div>
-        </section>
-
-        {warnings.length > 0 && (
-          <section className="mb-8">
-            <p className="section-title mb-3">Hinweise</p>
-            <div className="space-y-3">
-              {warnings.map((warning, index) => (
-                <Warning key={index} warning={warning} />
-              ))}
-            </div>
+            <DrivingTimeChart data={weekdayData} title="Wochentage" />
           </section>
         )}
 
@@ -145,7 +91,7 @@ export default function Index() {
           </div>
           <div className="space-y-2">
             {uiTrips.map((trip) => (
-              <TripCard key={trip.trip_id} trip={trip} />
+              <TripCard key={trip.id} trip={trip} />
             ))}
           </div>
         </section>

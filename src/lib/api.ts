@@ -1,101 +1,114 @@
-import { VehicleStats, VehicleAnalysis, Achievement, Trip, SafetyEvent, DayValue, TimeBucket } from "../types/api";
+import type { DeviceEntity, TripDetailsResponse, TelemetryResponse } from "../types/api";
 
-// Simulate API delay
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+const API_BASE_URL = "http://drivebackend.rehr.cloud/api";
 
-const mockStats: VehicleStats = {
-  total_km: 847,
-  avg_speed: 48,
-  total_drive_time_minutes: 990, // 16.5 hours
-  trip_count: 23,
-};
+// Helper for API calls
+async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+    ...options,
+  });
 
-const mockWeekdayData: DayValue[] = [
-  { day: "Mo", value: 2.5 },
-  { day: "Di", value: 1.8 },
-  { day: "Mi", value: 3.2 },
-  { day: "Do", value: 2.1 },
-  { day: "Fr", value: 4.5 },
-  { day: "Sa", value: 1.2 },
-  { day: "So", value: 0.8 },
-];
-
-const mockTimeOfDayData: TimeBucket[] = [
-  { label: "Morgens (6-10)", value: 35 },
-  { label: "Mittags (10-14)", value: 15 },
-  { label: "Nachmittags (14-18)", value: 30 },
-  { label: "Abends (18-22)", value: 20 },
-];
-
-const mockSafetyEvents: SafetyEvent[] = [
-  {
-    timestamp: new Date().toISOString(),
-    type: 'HARD_BRAKE',
+  if (!response.ok) {
+    throw new Error(`API error: ${response.statusText}`);
   }
-];
 
-const mockAnalysis: VehicleAnalysis = {
-  weekday_usage: mockWeekdayData,
-  time_of_day_usage: mockTimeOfDayData,
-  safety_events: mockSafetyEvents,
-};
+  return response.json();
+}
 
-const mockAchievements: Achievement[] = [
-  { name: "1.000 km Club", achieved: true, progress_percent: 100 },
-  { name: "Frühaufsteher", achieved: true, progress_percent: 100 },
-  { name: "Sparfuchs", achieved: false, progress_percent: 50 },
-];
+// Devices
+export async function getAllDevices(): Promise<DeviceEntity[]> {
+  return apiCall<DeviceEntity[]>("/devices");
+}
 
-const mockTrips: Trip[] = [
-  {
-    trip_id: "1",
-    datum_uhrzeit_start: "2026-01-15 14:32",
-    km: 38.5,
-    dauer: "42 min",
-    avg_speed: "55",
-  },
-  {
-    trip_id: "2",
-    datum_uhrzeit_start: "2026-01-15 09:15",
-    km: 12.3,
-    dauer: "18 min",
-    avg_speed: "41",
-    tag: "Arbeit",
-  },
-  {
-    trip_id: "3",
-    datum_uhrzeit_start: "2026-01-14 19:30",
-    km: 5.2,
-    dauer: "12 min",
-    avg_speed: "26",
-    tag: "Geburtstagsfeier",
-  },
-  {
-    trip_id: "4",
-    datum_uhrzeit_start: "2026-01-14 08:45",
-    km: 12.3,
-    dauer: "22 min",
-    avg_speed: "34",
-    tag: "Arbeit",
-  },
-];
+export async function updateDeviceName(
+  deviceId: string,
+  name: string
+): Promise<DeviceEntity> {
+  return apiCall<DeviceEntity>(`/devices/${deviceId}/name`, {
+    method: "PUT",
+    body: JSON.stringify(name),
+  });
+}
 
-export const getVehicleStats = async (): Promise<VehicleStats> => {
-  await delay(300);
-  return mockStats;
-};
+// Telemetry
+export async function getTelemetry(
+  deviceId: string,
+  since?: Date,
+  end?: Date,
+  tripId?: string
+): Promise<TelemetryResponse[]> {
+  const params = new URLSearchParams({ deviceId });
+  if (since) params.append("since", since.toISOString());
+  if (end) params.append("end", end.toISOString());
+  if (tripId) params.append("tripId", tripId);
 
-export const getVehicleAnalysis = async (): Promise<VehicleAnalysis> => {
-  await delay(500);
-  return mockAnalysis;
-};
+  return apiCall<TelemetryResponse[]>(`/telemetry?${params}`);
+}
 
-export const getAchievements = async (): Promise<Achievement[]> => {
-  await delay(400);
-  return mockAchievements;
-};
+export async function getLatestTelemetry(deviceId: string): Promise<TelemetryResponse> {
+  return apiCall<TelemetryResponse>(`/telemetry/latest?deviceId=${deviceId}`);
+}
 
-export const getTrips = async (): Promise<Trip[]> => {
-  await delay(600);
-  return mockTrips;
-};
+// Trips
+export async function getTrips(
+  deviceId: string,
+  since?: Date,
+  end?: Date,
+  timeBetweenTripsInSeconds?: number
+): Promise<Record<string, TripDetailsResponse>> {
+  const params = new URLSearchParams({ deviceId });
+  if (since) params.append("since", since.toISOString());
+  if (end) params.append("end", end.toISOString());
+  if (timeBetweenTripsInSeconds)
+    params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
+
+  return apiCall<Record<string, TripDetailsResponse>>(`/trips?${params}`);
+}
+
+export async function getTripsPerWeekday(
+  deviceId: string,
+  since?: Date,
+  end?: Date,
+  timeBetweenTripsInSeconds?: number
+): Promise<Record<string, number>> {
+  const params = new URLSearchParams({ deviceId });
+  if (since) params.append("since", since.toISOString());
+  if (end) params.append("end", end.toISOString());
+  if (timeBetweenTripsInSeconds)
+    params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
+
+  return apiCall<Record<string, number>>(`/trips/weekday?${params}`);
+}
+
+export async function updateTrip(
+  tripId: string,
+  startLocation?: string,
+  endLocation?: string
+): Promise<void> {
+  return apiCall<void>(`/trips/${tripId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ startLocation, endLocation }),
+  });
+}
+
+// Vehicle Stats
+export async function getVehicleStats(
+  deviceId: string,
+  since: Date,
+  end: Date,
+  timeBetweenTripsInSeconds?: number
+): Promise<Record<string, unknown>> {
+  const params = new URLSearchParams({
+    deviceId,
+    since: since.toISOString(),
+    end: end.toISOString(),
+  });
+  if (timeBetweenTripsInSeconds)
+    params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
+
+  return apiCall<Record<string, unknown>>(`/devices/stats?${params}`);
+}

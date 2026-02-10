@@ -1,9 +1,7 @@
-import type { Trip } from './api';
+import type { TripDetailsResponse } from './api';
 
-export interface UITrip extends Trip {
-  startLocation: string;
-  endLocation: string;
-  context?: string;
+export interface UITrip extends Omit<TripDetailsResponse, 'timed_data' | 'aggregated_data'> {
+  // extends TripDetailsResponse but explicitly omits the data arrays
 }
 
 export interface Stat {
