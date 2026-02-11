@@ -1,12 +1,13 @@
 import type { DeviceEntity, TripDetailsResponse, TelemetryResponse } from "../types/api";
 
-const API_BASE_URL = "http://drivebackend.rehr.cloud/api";
+const API_BASE_URL = "/api";
 
 // Helper for API calls
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
+      "x-api-key": "my-local-test-key", //TODO: DO NOT HARDCODE THIS
       ...options?.headers,
     },
     ...options,

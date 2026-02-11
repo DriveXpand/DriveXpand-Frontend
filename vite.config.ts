@@ -11,6 +11,13 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      "/api": {
+        target: "http://app:8080", // Spring-Service with container name
+        changeOrigin: true,
+      },
+    },
+
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
