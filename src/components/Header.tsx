@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import type { DeviceEntity } from '../types/api';
 import { useSearchParams } from "react-router-dom";
 import Modal from "./Modal";
-// Make sure to import getAllDevices!
 import { getAllDevices } from '../lib/api';
 
 interface HeaderProps {
@@ -12,29 +11,65 @@ interface HeaderProps {
     onMonthChange?: () => void;
 }
 
+const STORAGE_KEY = "drivexpand_vehicles";
+
+// Helper to add unique vehicles
+function addVehicle(prevVehicles: DeviceEntity[], newVehicle: DeviceEntity) {
+    const exists = prevVehicles.some(v => v.deviceId === newVehicle.deviceId);
+    if (exists) return prevVehicles;
+    return [...prevVehicles, newVehicle];
+}
+
 export function Header({ currentMonth, onMonthChange }: HeaderProps) {
     const [searchParams, setSearchParams] = useSearchParams();
-
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [vehicles, setVehicles] = useState<DeviceEntity[]>([]);
     const deviceId = searchParams.get("device");
 
-    // Fetch existing vehicles when the header mounts
+    // 1. Initialize state from LocalStorage
+    const [vehicles, setVehicles] = useState<DeviceEntity[]>(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error("Error reading from localStorage", error);
+            return [];
+        }
+    });
+
+    // 2. Sync state changes to LocalStorage
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles));
+    }, [vehicles]);
+
+    // Fetch existing vehicles (API) and merge safely
     useEffect(() => {
         const fetchVehicles = async () => {
             try {
+                // Only fetch if we have absolutely nothing (optional, depends on preference)
+                // or fetch to ensure we at least have the default car from API
                 const fetchedVehicles = await getAllDevices();
-                setVehicles([fetchedVehicles[0]]);
+                
+                if (fetchedVehicles && fetchedVehicles.length > 0) {
+                    // Update state using the duplicate-checker function
+                    setVehicles(prev => addVehicle(prev, fetchedVehicles[0]));
+                }
             } catch (error) {
                 console.error("Failed to load existing vehicles:", error);
             }
         };
-        fetchVehicles();
-    }, []); // Empty dependency array ensures this only runs once on mount
+
+        // If list is empty, try fetching from API
+        if (vehicles.length === 0) {
+            fetchVehicles();
+        }
+    }, []); 
 
     const handleFinish = (newDeviceEntity: DeviceEntity) => {
         console.log("Neues Fahrzeug hinzugefügt:", newDeviceEntity);
-        setVehicles((preVehicles) => [...preVehicles, newDeviceEntity])
+        
+        // Add to state (useEffect above will handle the LocalStorage save)
+        setVehicles((prevVehicles) => addVehicle(prevVehicles, newDeviceEntity));
+        
         setIsModalOpen(false);
         handleVehicleClick(newDeviceEntity.deviceId, newDeviceEntity.name)
     }
@@ -59,6 +94,7 @@ export function Header({ currentMonth, onMonthChange }: HeaderProps) {
                 </div>
                 <div className="flex gap-2">
                     {vehicles.map((vehicle) => {
+                        if (!vehicle) return null;
                         const isActive = vehicle.deviceId === deviceId;
                         return (
                             <Button
