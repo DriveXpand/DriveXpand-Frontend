@@ -1,8 +1,8 @@
 import { ChevronRight, MapPin } from "lucide-react";
-import type { UITrip } from "../types/ui";
+import type { TripEntity } from "../types/api";
 
 interface TripCardProps {
-  trip: UITrip;
+  trip: TripEntity;
   onClick?: () => void;
 }
 
