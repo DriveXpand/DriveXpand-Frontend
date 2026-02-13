@@ -9,7 +9,6 @@ interface LatestTripsProps {
 
 export function LatestTrips({ trips }: LatestTripsProps) {
     const [searchParams] = useSearchParams();
-    const deviceId = searchParams.get("device");
 
     return (
         <div className="space-y-2">

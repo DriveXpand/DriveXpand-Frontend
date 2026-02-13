@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Car, ChevronDown, PlusCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DeviceEntity } from '../types/api';
 import { useSearchParams } from "react-router-dom";
-import Modal from "./Modal"
+import Modal from "./Modal";
+// Make sure to import getAllDevices!
+import { getAllDevices } from '../lib/api';
 
 interface HeaderProps {
     currentMonth: string;
@@ -16,6 +18,20 @@ export function Header({ currentMonth, onMonthChange }: HeaderProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [vehicles, setVehicles] = useState<DeviceEntity[]>([]);
     const deviceId = searchParams.get("device");
+
+    // Fetch existing vehicles when the header mounts
+    useEffect(() => {
+        const fetchVehicles = async () => {
+            try {
+                const fetchedVehicles = await getAllDevices();
+                setVehicles([fetchedVehicles[0]]);
+            } catch (error) {
+                console.error("Failed to load existing vehicles:", error);
+            }
+        };
+        fetchVehicles();
+    }, []); // Empty dependency array ensures this only runs once on mount
+
     const handleFinish = (newDeviceEntity: DeviceEntity) => {
         console.log("Neues Fahrzeug hinzugefügt:", newDeviceEntity);
         setVehicles((preVehicles) => [...preVehicles, newDeviceEntity])
@@ -33,6 +49,7 @@ export function Header({ currentMonth, onMonthChange }: HeaderProps) {
             { replace: true }
         );
     }
+
     return (
         <header className="border-b border-border bg-card sticky top-0 z-50">
             <div className="container mx-auto py-4 flex items-center justify-between">
@@ -44,7 +61,14 @@ export function Header({ currentMonth, onMonthChange }: HeaderProps) {
                     {vehicles.map((vehicle) => {
                         const isActive = vehicle.deviceId === deviceId;
                         return (
-                            <Button variant={isActive ? "selected_car" : "outline"} size="sm" key={vehicle.deviceId} onClick={() => handleVehicleClick(vehicle.deviceId, vehicle.name)}>{vehicle.name}</Button>
+                            <Button
+                                variant={isActive ? "selected_car" : "outline"}
+                                size="sm"
+                                key={vehicle.deviceId}
+                                onClick={() => handleVehicleClick(vehicle.deviceId, vehicle.name)}
+                            >
+                                {vehicle.name}
+                            </Button>
                         );
                     })}
                     <Button variant="default" size="sm" onClick={() => setIsModalOpen(true)}>
