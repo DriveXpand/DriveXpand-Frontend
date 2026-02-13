@@ -1,16 +1,11 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowRightCircle, XCircle, ChevronDown, Check } from 'lucide-react'; 
 import Grid from '@mui/material/Grid';
 import { Button } from "@/components/ui/button";
+import { getAllDevices } from '../lib/api';
+import type { DeviceEntity } from '../types/api';
 
-// Wir nutzen jetzt deine neuen Shadcn Components
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import '../Modal.css';
 
@@ -19,23 +14,32 @@ const Item = (props: any) => <div {...props} />;
 
 interface ModalProps{
   onClose: () => void;
-  onFinish: (vehicleData: {ID: number, Name: string}) => void;
+  onFinish: (vehicleData: {ID: string, Name: string}) => void;
 }
 
 function Modal({ onClose, onFinish }: ModalProps) {
   const [page, setPage] = useState(0);
-  const [vehicleIdSelect, setVehicleIdSelect] = useState<number | null>(null);
+  const [vehicleIdSelect, setVehicleIdSelect] = useState<string | null>(null);
   const [vehicleNameSelect, setVehicleNameSelect] = useState("");
-  
+  const [deviceList, setDeviceList] = useState<DeviceEntity[]>([])
 
-  const testDropdown = [
-    {deviceID: 1, deviceName: "Gerät 1 (OBD)"}, 
-    {deviceID: 2, deviceName: "Gerät 2 (Veepeak)"}, 
-    {deviceID: 3, deviceName: "Gerät 3 (ELM)"}
-  ];
-  
+
+  useEffect (() => {
+    const fetchList = async() => { 
+      try { 
+        const carList = await getAllDevices();
+        console.log("Auto:", carList);
+        setDeviceList(carList);
+      } catch (error) {
+        console.log("Fehler beim Abrufen")
+      }
+    };
+    fetchList();
+  }, []);
+
+
   // Zeigt den Namen an oder einen Platzhalter
-  const selectedDeviceName = testDropdown.find(d => d.deviceID === vehicleIdSelect)?.deviceName || "Bitte wählen...";
+  //const selectedDeviceName = deviceList.find(d => d.deviceId === vehicleIdSelect)?.deviceId || "Bitte wählen...";
   
   const STEPS = [
     { 
@@ -78,14 +82,17 @@ function Modal({ onClose, onFinish }: ModalProps) {
   ];
   
   const isLastPage = page === STEPS.length - 1;
+  const isSecondToLastPage = page === STEPS.length - 2;
 
   const handleNext = () => {
     if (!isLastPage) {
       setPage(page + 1);
-    } else {
+    } 
+    if (isSecondToLastPage) {
       // Validierung
       if (vehicleIdSelect === null) {
         alert("Bitte wähle ein Gerät aus!");
+        setPage(STEPS.length - 2);
         return;
       }
 
@@ -133,7 +140,15 @@ function Modal({ onClose, onFinish }: ModalProps) {
                                   // Der Wert ist die ID (oder leerer String, wenn null)
                                   value={vehicleIdSelect || ""}
                                   // Beim Ändern: String in Zahl umwandeln und speichern
-                                  onChange={(e) => setVehicleIdSelect(Number(e.target.value))}
+                                  onChange={(e) => {
+                                    const selectedID = String(e.target.value);
+                                    setVehicleIdSelect(selectedID)
+                                    const selectedCar = deviceList.find( d => String(d.deviceId) === selectedID);
+                                    if (selectedCar){
+                                      setVehicleNameSelect(selectedCar.name);
+                                    }
+                                  }}
+                                 
                                   style={{ 
                                     padding: '8px 12px', 
                                     borderRadius: '6px', 
@@ -146,12 +161,12 @@ function Modal({ onClose, onFinish }: ModalProps) {
                                   }}
                                >
                                   {/* Platzhalter-Option */}
-                                  <option value="" disabled>Klick!</option>
-                                
+                                  <option value="" disabled>{"Bitte wähle den Connector..."}</option>
+                                {/* 3. Korrekter Platzhalter (Value muss leerer String sein) */}
                                   {/* Die echten Optionen */}
-                                  {testDropdown.map((device) => (
-                                     <option key={device.deviceID} value={device.deviceID}>
-                                        {device.deviceName}
+                                  {deviceList.map((device) => (
+                                     <option key={device.deviceId} value={device.deviceId}>
+                                        {device.deviceId}
                                      </option>
                                   ))}
                             </select>                             

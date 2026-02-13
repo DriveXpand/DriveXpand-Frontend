@@ -9,22 +9,23 @@ interface HeaderProps {
 }
 
 interface VehicleData {
-  ID: number;
+  ID: string;
   Name: string;
 }
 
 export function Header({ currentMonth, onMonthChange }: HeaderProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
-  const [isSelected, setIsSelected] = useState<number | null>(null);
+  const [isSelected, setIsSelected] = useState<string | null>(null);
   const handleFinish = (newVehicleData: VehicleData) => {
     console.log("Neues Fahrzeug hinzugefügt:", newVehicleData);
     setVehicles((preVehicles) => [...preVehicles, newVehicleData])
     setIsModalOpen(false);
     handleVehicleClick(newVehicleData.ID, newVehicleData.Name)
+    
   }
   
-  const handleVehicleClick = (vehicleID: number, vehicleName: string) => {
+  const handleVehicleClick = (vehicleID: string, vehicleName: string) => {
     console.log(`Lade Daten von ${vehicleName} mit der ID ${vehicleID}`);
     setIsSelected(vehicleID)
     
@@ -45,7 +46,7 @@ export function Header({ currentMonth, onMonthChange }: HeaderProps) {
           })}
           <Button variant="default" size="sm" onClick={() => setIsModalOpen(true)}>
             <PlusCircleIcon className="w-5 h-5 text-white"/>
-            <span>Fahrzeug hinzufügen</span>
+            {vehicles.length === 0 && (<span>Fahrzeug hinzufügen</span>)}
           </Button>
         </div>
 
