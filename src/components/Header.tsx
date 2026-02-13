@@ -25,51 +25,55 @@ export function Header({ currentMonth, onMonthChange }: HeaderProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const deviceId = searchParams.get("device");
 
-    // 1. Initialize state from LocalStorage
-    const [vehicles, setVehicles] = useState<DeviceEntity[]>(() => {
-        try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            return saved ? JSON.parse(saved) : [];
-        } catch (error) {
-            console.error("Error reading from localStorage", error);
-            return [];
-        }
-    });
+    // UI State: Holds full objects (Name, ID, etc.) for display
+    const [vehicles, setVehicles] = useState<DeviceEntity[]>([]);
 
-    // 2. Sync state changes to LocalStorage
+    // 1. Initial Load: Read IDs from Storage -> Fetch API -> Merge
     useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles));
-    }, [vehicles]);
-
-    // Fetch existing vehicles (API) and merge safely
-    useEffect(() => {
-        const fetchVehicles = async () => {
+        const hydrateVehicles = async () => {
             try {
-                // Only fetch if we have absolutely nothing (optional, depends on preference)
-                // or fetch to ensure we at least have the default car from API
-                const fetchedVehicles = await getAllDevices();
-                
-                if (fetchedVehicles && fetchedVehicles.length > 0) {
-                    // Update state using the duplicate-checker function
-                    setVehicles(prev => addVehicle(prev, fetchedVehicles[0]));
+                // A. Get stored IDs
+                const savedRaw = localStorage.getItem(STORAGE_KEY);
+                const savedIds: string[] = savedRaw ? JSON.parse(savedRaw) : [];
+
+                // B. Fetch fresh data from API
+                const apiDevices = await getAllDevices();
+
+                if (!apiDevices || apiDevices.length === 0) return;
+
+                if (savedIds.length > 0) {
+                    // C. Filter API results to match stored IDs
+                    // This ensures we have the correct Names for the IDs
+                    const restoredVehicles = apiDevices.filter(device =>
+                        savedIds.includes(device.deviceId)
+                    );
+                    setVehicles(restoredVehicles);
+                } else {
+                    // D. Fallback: If nothing in storage, add the first available device
+                    setVehicles([apiDevices[0]]);
                 }
+
             } catch (error) {
-                console.error("Failed to load existing vehicles:", error);
+                console.error("Failed to sync vehicles:", error);
             }
         };
 
-        // If list is empty, try fetching from API
-        if (vehicles.length === 0) {
-            fetchVehicles();
-        }
-    }, []); 
+        hydrateVehicles();
+    }, []);
+
+    // 2. Sync State to LocalStorage (Save IDs only)
+    useEffect(() => {
+        // We only save the IDs, not the full objects
+        const idsToSave = vehicles.map(v => v.deviceId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(idsToSave));
+    }, [vehicles]);
 
     const handleFinish = (newDeviceEntity: DeviceEntity) => {
         console.log("Neues Fahrzeug hinzugefügt:", newDeviceEntity);
-        
-        // Add to state (useEffect above will handle the LocalStorage save)
+
+        // Update UI State (The useEffect above will catch this and save the ID)
         setVehicles((prevVehicles) => addVehicle(prevVehicles, newDeviceEntity));
-        
+
         setIsModalOpen(false);
         handleVehicleClick(newDeviceEntity.deviceId, newDeviceEntity.name)
     }

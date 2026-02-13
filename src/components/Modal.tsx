@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { ArrowRightCircle, XCircle } from 'lucide-react';
 import Grid from '@mui/material/Grid';
 import { Button } from "@/components/ui/button";
-import { getAllDevices } from '../lib/api';
+import { getAllDevices, updateDeviceName } from '../lib/api';
 import type { DeviceEntity } from '../types/api';
 
 
@@ -36,10 +36,6 @@ function Modal({ onClose, onFinish }: ModalProps) {
         };
         fetchList();
     }, []);
-
-
-    // Zeigt den Namen an oder einen Platzhalter
-    //const selectedDeviceName = deviceList.find(d => d.deviceId === vehicleIdSelect)?.deviceId || "Bitte wählen...";
 
     const STEPS = [
         {
@@ -84,24 +80,48 @@ function Modal({ onClose, onFinish }: ModalProps) {
     const isLastPage = page === STEPS.length - 1;
     const isSecondToLastPage = page === STEPS.length - 2;
 
-    const handleNext = () => {
-        if (!isLastPage) {
-            setPage(page + 1);
-        }
+    const handleNext = async () => {
+        // 1. Logik für die Formular-Seite (Gerät auswählen & Name eingeben)
         if (isSecondToLastPage) {
             // Validierung
             if (vehicleIdSelect === null) {
                 alert("Bitte wähle ein Gerät aus!");
-                setPage(STEPS.length - 2);
                 return;
             }
 
+            try {
+                // PATCH: Sende den neuen Namen an die API
+                // FIX: Auch hier zur Sicherheit nochmal Quotes entfernen, falls der User welche eingetippt hat
+                let finalName = vehicleNameSelect || "Mein Fahrzeug";
+                finalName = finalName.replace(/^"|"$/g, ''); 
+
+                await updateDeviceName(vehicleIdSelect, finalName);
+
+                // Wenn der Request erfolgreich war, zeige die "Alles bereit!" Seite
+                setPage(page + 1);
+            } catch (error) {
+                console.error("Fehler beim Speichern des Namens:", error);
+                alert("Der Fahrzeugname konnte nicht gespeichert werden.");
+            }
+            return;
+        }
+
+        // 2. Logik für die allerletzte Seite ("Alles bereit!")
+        if (isLastPage) {
+            // FIX: Auch beim Finish Event bereinigten Namen senden
+            let finalName = vehicleNameSelect || "Mein Fahrzeug";
+            finalName = finalName.replace(/^"|"$/g, '');
+
             onFinish({
-                deviceId: vehicleIdSelect,
-                name: vehicleNameSelect || "Mein Fahrzeug"
+                deviceId: vehicleIdSelect!,
+                name: finalName
             });
             onClose();
+            return;
         }
+
+        // 3. Für alle anderen Seiten: Einfach eine Seite weiter blättern
+        setPage(page + 1);
     };
 
     return createPortal(
@@ -144,8 +164,13 @@ function Modal({ onClose, onFinish }: ModalProps) {
                                                     const selectedID = String(e.target.value);
                                                     setVehicleIdSelect(selectedID)
                                                     const selectedCar = deviceList.find(d => String(d.deviceId) === selectedID);
+                                                    
                                                     if (selectedCar) {
-                                                        setVehicleNameSelect(selectedCar.name);
+                                                        // FIX: Remove leading/trailing quotes from API data
+                                                        const rawName = selectedCar.name || "";
+                                                        // Regex: Replace quote at start (^) OR quote at end ($) with empty string
+                                                        const cleanName = rawName.replace(/^"|"$/g, '');
+                                                        setVehicleNameSelect(cleanName);
                                                     }
                                                 }}
 

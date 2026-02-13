@@ -31,7 +31,7 @@ export async function updateDeviceName(
 ): Promise<DeviceEntity> {
   return apiCall<DeviceEntity>(`/devices/${deviceId}/name`, {
     method: "PUT",
-    body: JSON.stringify(name),
+    body: name,
   });
 }
 
