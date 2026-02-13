@@ -49,3 +49,7 @@ export interface TripUpdateRequest {
   startLocation?: string;
   endLocation?: string;
 }
+
+export interface TripEntity extends TripResponse {
+  device: DeviceEntity;
+}

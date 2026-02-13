@@ -59,6 +59,23 @@ export async function getTrips(
   deviceId: string,
   since?: Date,
   end?: Date,
+  timeBetweenTripsInSeconds?: number,
+  pageSize?: number
+): Promise<Record<string, TripDetailsResponse>> {
+  const params = new URLSearchParams({ deviceId });
+  if (since) params.append("since", since.toISOString());
+  if (end) params.append("end", end.toISOString());
+  if (end) params.append("pageSize", pageSize.toISOString());
+  if (timeBetweenTripsInSeconds)
+    params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
+
+  return apiCall<Record<string, TripDetailsResponse>>(`/trips?${params}`);
+}
+
+export async function getTripsTelemetry(
+  deviceId: string,
+  since?: Date,
+  end?: Date,
   timeBetweenTripsInSeconds?: number
 ): Promise<Record<string, TripDetailsResponse>> {
   const params = new URLSearchParams({ deviceId });
