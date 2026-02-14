@@ -11,7 +11,7 @@ export default function Index() {
     const PAGE_SIZE = 20
     const [trips, setTrips] = useState<TripEntity[]>([]);
     const [weekdayData, setWeekdayData] = useState<Array<{ day: string; value: number }>>([]);
-    
+
     const [loading, setLoading] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [pageSize, setPageSize] = useState(PAGE_SIZE);
@@ -78,16 +78,24 @@ export default function Index() {
                     since = new Date(now.getFullYear(), now.getMonth() - 3, 1);
                 } else if (timeRange === "last_6_months") {
                     since = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+                } else if (timeRange === "this_year") {
+                    // Month 0 is January
+                    since = new Date(now.getFullYear(), 0, 1);
+                } else if (timeRange === "last_year") {
+                    // January 1st of previous year
+                    since = new Date(now.getFullYear() - 1, 0, 1);
+                    // Day 0 of Month 0 (January) of current year gives Dec 31 of previous year
+                    end = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
                 }
 
                 // We fetch both, but often weekday data doesn't need to change on pagination.
                 // However, to keep it simple and accurate to the filtered range, we refetch.
                 const [tripsData, weekdayDataRaw] = await Promise.all([
                     getTrips(
-                        deviceId, 
-                        since, 
-                        end, 
-                        undefined, 
+                        deviceId,
+                        since,
+                        end,
+                        undefined,
                         pageSize // Dynamic page size
                     ),
                     getTripsPerWeekday(deviceId),
@@ -100,7 +108,7 @@ export default function Index() {
 
                 // Process Weekday Data
                 const weekdayMap: Record<string, string> = {
-                    MONDAY: "Mo", TUESDAY: "Di", WEDNESDAY: "Mi", 
+                    MONDAY: "Mo", TUESDAY: "Di", WEDNESDAY: "Mi",
                     THURSDAY: "Do", FRIDAY: "Fr", SATURDAY: "Sa", SUNDAY: "So",
                 };
 
@@ -134,9 +142,9 @@ export default function Index() {
 
     return (
         <div className="min-h-screen bg-background">
-            <Header 
-                selectedRange={timeRange} 
-                onRangeChange={setTimeRange} 
+            <Header
+                selectedRange={timeRange}
+                onRangeChange={setTimeRange}
             />
 
             <main className="container mx-auto py-6">
@@ -150,16 +158,16 @@ export default function Index() {
                 <section>
                     <div className="flex items-center justify-between mb-3">
                         <p className="section-title">Letzte Fahrten</p>
-                        <button 
+                        <button
                             className="text-sm text-primary hover:underline"
-                            // Optional: Could link to a dedicated full history page
+                        // Optional: Could link to a dedicated full history page
                         >
                             Alle anzeigen
                         </button>
                     </div>
-                    
-                    <LatestTrips 
-                        trips={trips} 
+
+                    <LatestTrips
+                        trips={trips}
                         onLoadMore={handleLoadMore}
                         loading={isFetchingMore}
                         // Heuristic: If we got fewer items than requested, we reached the end

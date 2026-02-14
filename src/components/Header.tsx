@@ -131,9 +131,9 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                                 className="group relative pr-8 pl-3" // Mehr Padding rechts für das X
                             >
                                 {vehicle.name}
-                                
+
                                 {/* Das rote X zum Löschen */}
-                                <div 
+                                <div
                                     role="button"
                                     onClick={(e) => handleRemoveVehicle(e, vehicle.deviceId)}
                                     className="
@@ -178,6 +178,8 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                         <option value="last_month">Letzten Monat</option>
                         <option value="last_3_months">Letzte 3 Monate</option>
                         <option value="last_6_months">Letzte 6 Monate</option>
+                        <option value="this_year">Dieses Jahr</option>
+                        <option value="last_year">Letztes Jahr</option>
                     </select>
 
                     {/* Custom Chevron Icon overlay */}

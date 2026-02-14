@@ -19,4 +19,4 @@ export interface Warning {
   description: string;
 }
 
-export type TimeRange = "this_month" | "last_month" | "last_3_months" | "last_6_months";
+export type TimeRange = "this_month" | "last_month" | "last_3_months" | "last_6_months" | "this_year" | "last_year";
