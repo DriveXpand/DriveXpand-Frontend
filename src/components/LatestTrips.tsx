@@ -1,20 +1,20 @@
 import type { TripEntity } from "../types/api";
-import { TripCard } from "./TripCard"
-import { useSearchParams } from "react-router-dom";
-import { useEffect } from "react"; 
+import { TripCard } from "./TripCard";
 
 interface LatestTripsProps {
     trips: TripEntity[];
 }
 
 export function LatestTrips({ trips }: LatestTripsProps) {
-    const [searchParams] = useSearchParams();
+    const sortedTrips = [...trips].sort((a, b) => {
+        return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+    });
 
     return (
         <div className="space-y-2">
-            {trips.map((trip) => (
+            {sortedTrips.map((trip) => (
                 <TripCard key={trip.id} trip={trip} />
             ))}
         </div>
-    )
+    );
 }

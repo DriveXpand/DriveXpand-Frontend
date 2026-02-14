@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/Header";
 import { DrivingTimeChart } from "@/components/DrivingTimeChart";
 // Consolidated your api imports here
@@ -6,11 +6,22 @@ import { getTrips, getTripsPerWeekday, getAllDevices } from "@/lib/api";
 import type { TripEntity } from "@/types/api";
 import { useSearchParams } from "react-router-dom";
 import { LatestTrips } from "../components/LatestTrips";
+import type { TimeRange } from "../types/ui";
 
 export default function Index() {
     const [trips, setTrips] = useState<TripEntity[]>([]);
     const [weekdayData, setWeekdayData] = useState<Array<{ day: string; value: number }>>([]);
     const [loading, setLoading] = useState(true);
+
+    const [timeRange, setTimeRange] = useState<TimeRange>(() => {
+        // Initialize from LocalStorage or default to 'this_month'
+        const saved = localStorage.getItem("trip_filter_range");
+        return (saved as TimeRange) || "this_month";
+    });
+
+    useEffect(() => {
+        localStorage.setItem("trip_filter_range", timeRange);
+    }, [timeRange]);
 
     // Grab setSearchParams so we can update the URL
     const [searchParams, setSearchParams] = useSearchParams();
@@ -86,13 +97,43 @@ export default function Index() {
         fetchData();
     }, [deviceId]); // Now this securely depends on the URL parameter!
 
+    const filteredTrips = useMemo(() => {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
+        return trips.filter((trip) => {
+            const tripDate = new Date(trip.startTime);
+            
+            if (timeRange === "this_month") {
+                return tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear;
+            }
+            if (timeRange === "last_month") {
+                const lastMonthDate = new Date(currentYear, currentMonth - 1, 1);
+                return tripDate.getMonth() === lastMonthDate.getMonth() && tripDate.getFullYear() === lastMonthDate.getFullYear();
+            }
+            if (timeRange === "last_3_months") {
+                const threeMonthsAgo = new Date(currentYear, currentMonth - 3, 1);
+                return tripDate >= threeMonthsAgo;
+            }
+            if (timeRange === "last_6_months") {
+                const sixMonthsAgo = new Date(currentYear, currentMonth - 6, 1);
+                return tripDate >= sixMonthsAgo;
+            }
+            return true;
+        });
+    }, [trips, timeRange]);
+
     if (loading) {
         return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
     }
 
     return (
         <div className="min-h-screen bg-background">
-            <Header currentMonth="Januar 2026" />
+            <Header 
+                selectedRange={timeRange} 
+                onRangeChange={setTimeRange} 
+            />
 
             <main className="container mx-auto py-6">
                 {weekdayData.length > 0 && (
@@ -109,7 +150,8 @@ export default function Index() {
                             Alle anzeigen
                         </button>
                     </div>
-                    <LatestTrips trips={trips} />
+                    {/* Pass the FILTERED trips here */}
+                    <LatestTrips trips={filteredTrips} />
                 </section>
             </main>
         </div>
