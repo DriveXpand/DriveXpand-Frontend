@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Car, ChevronDown, PlusCircleIcon } from "lucide-react";
+import { Car, ChevronDown, PlusCircleIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DeviceEntity } from '../types/api';
 import { useSearchParams } from "react-router-dom";
 import Modal from "./Modal";
 import { getAllDevices } from '../lib/api';
-import type { TimeRange } from '../types/ui'; // Ensure this type exists in your types file
+import type { TimeRange } from '../types/ui';
 
 interface HeaderProps {
     selectedRange: TimeRange;
@@ -60,12 +60,9 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
         hydrateVehicles();
     }, []);
 
-    // 2. Sync State to LocalStorage (Save IDs only)
     useEffect(() => {
-        if (vehicles.length > 0) {
-            const idsToSave = vehicles.map(v => v.deviceId);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(idsToSave));
-        }
+        const idsToSave = vehicles.map(v => v.deviceId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(idsToSave));
     }, [vehicles]);
 
     const handleFinish = (newDeviceEntity: DeviceEntity) => {
@@ -89,6 +86,27 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
         );
     }
 
+    const handleRemoveVehicle = (e: React.MouseEvent, idToRemove: string) => {
+        e.stopPropagation(); // Verhindert, dass der Button-Klick (Auswahl) ausgelöst wird
+
+        const newVehicles = vehicles.filter(v => v.deviceId !== idToRemove);
+        setVehicles(newVehicles);
+
+        // Wenn das gelöschte Auto gerade aktiv war:
+        if (deviceId === idToRemove) {
+            if (newVehicles.length > 0) {
+                // Wähle das erste verfügbare Auto aus
+                handleVehicleClick(newVehicles[0].deviceId, newVehicles[0].name);
+            } else {
+                // Keine Autos mehr da -> Parameter entfernen
+                setSearchParams(prev => {
+                    prev.delete("device");
+                    return prev;
+                });
+            }
+        }
+    };
+
     return (
         <header className="border-b border-border bg-card sticky top-0 z-50">
             <div className="container mx-auto py-4 flex items-center justify-between">
@@ -106,12 +124,28 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                         const isActive = vehicle.deviceId === deviceId;
                         return (
                             <Button
-                                variant={isActive ? "default" : "outline"} // changed "selected_car" to "default" assuming standard shadcn
+                                variant={isActive ? "default" : "outline"}
                                 size="sm"
                                 key={vehicle.deviceId}
                                 onClick={() => handleVehicleClick(vehicle.deviceId, vehicle.name)}
+                                className="group relative pr-8 pl-3" // Mehr Padding rechts für das X
                             >
                                 {vehicle.name}
+                                
+                                {/* Das rote X zum Löschen */}
+                                <div 
+                                    role="button"
+                                    onClick={(e) => handleRemoveVehicle(e, vehicle.deviceId)}
+                                    className="
+                                        absolute right-1 top-1/2 -translate-y-1/2 
+                                        opacity-0 group-hover:opacity-100 
+                                        transition-opacity duration-200
+                                        p-1 hover:bg-white/20 rounded-full
+                                    "
+                                    title="Aus Liste entfernen"
+                                >
+                                    <X className={`w-3 h-3 ${isActive ? 'text-white' : 'text-red-500'}`} />
+                                </div>
                             </Button>
                         );
                     })}
