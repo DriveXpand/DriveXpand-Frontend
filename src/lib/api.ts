@@ -69,7 +69,7 @@ export async function getTrips(
   if (timeBetweenTripsInSeconds)
     params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
 
-  return apiCall<Record<string, TripDetailsResponse>>(`/trips?${params}`);
+  return apiCall<Record<string, TripDetailsResponse>>(`/trips/list?${params}`);
 }
 
 export async function getTripsTelemetry(
