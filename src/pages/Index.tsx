@@ -8,9 +8,13 @@ import { LatestTrips } from "../components/LatestTrips";
 import type { TimeRange } from "../types/ui";
 
 export default function Index() {
+    const PAGE_SIZE = 20
     const [trips, setTrips] = useState<TripEntity[]>([]);
     const [weekdayData, setWeekdayData] = useState<Array<{ day: string; value: number }>>([]);
+    
     const [loading, setLoading] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
     const [timeRange, setTimeRange] = useState<TimeRange>(() => {
         const saved = localStorage.getItem("trip_filter_range");
@@ -19,6 +23,7 @@ export default function Index() {
 
     useEffect(() => {
         localStorage.setItem("trip_filter_range", timeRange);
+        setPageSize(PAGE_SIZE);
     }, [timeRange]);
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -48,55 +53,55 @@ export default function Index() {
         }
     }, [deviceId, setSearchParams]);
 
-    // 2. Fetch data when Device ID OR TimeRange changes
+    // 2. Fetch data when Device ID, TimeRange, OR PageSize changes
     useEffect(() => {
         if (!deviceId) return;
 
         const fetchData = async () => {
-            setLoading(true);
+            if (trips.length === 0) {
+                setLoading(true);
+            } else {
+                setIsFetchingMore(true);
+            }
+
             try {
-                // Calculate date params for server-side filtering
                 const now = new Date();
                 let since: Date | undefined;
                 let end: Date | undefined;
 
-                // Simple date logic to match the previous filters
                 if (timeRange === "this_month") {
                     since = new Date(now.getFullYear(), now.getMonth(), 1);
                 } else if (timeRange === "last_month") {
                     since = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
                 } else if (timeRange === "last_3_months") {
                     since = new Date(now.getFullYear(), now.getMonth() - 3, 1);
                 } else if (timeRange === "last_6_months") {
                     since = new Date(now.getFullYear(), now.getMonth() - 6, 1);
                 }
 
+                // We fetch both, but often weekday data doesn't need to change on pagination.
+                // However, to keep it simple and accurate to the filtered range, we refetch.
                 const [tripsData, weekdayDataRaw] = await Promise.all([
-                    // Pass parameters to API to reduce payload size
                     getTrips(
                         deviceId, 
                         since, 
                         end, 
-                        undefined, // timeBetweenTripsInSeconds
-                        50 // pageSize: Limit to 50 latest trips to prevent frontend struggle
+                        undefined, 
+                        pageSize // Dynamic page size
                     ),
                     getTripsPerWeekday(deviceId),
                 ]);
 
-                // Convert trips object to array
                 const tripsArray = Object.values(tripsData);
-
+                // Sort by time descending
+                tripsArray.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
                 setTrips(tripsArray);
 
-                // Convert weekday data to chart format
+                // Process Weekday Data
                 const weekdayMap: Record<string, string> = {
-                    MONDAY: "Mo",
-                    TUESDAY: "Di",
-                    WEDNESDAY: "Mi",
-                    THURSDAY: "Do",
-                    FRIDAY: "Fr",
-                    SATURDAY: "Sa",
-                    SUNDAY: "So",
+                    MONDAY: "Mo", TUESDAY: "Di", WEDNESDAY: "Mi", 
+                    THURSDAY: "Do", FRIDAY: "Fr", SATURDAY: "Sa", SUNDAY: "So",
                 };
 
                 const weekdayDataFormatted = Object.entries(weekdayDataRaw).map(
@@ -105,19 +110,25 @@ export default function Index() {
                         value: value as number,
                     })
                 );
-
                 setWeekdayData(weekdayDataFormatted);
+
             } catch (error) {
                 console.error("Failed to fetch data:", error);
             } finally {
                 setLoading(false);
+                setIsFetchingMore(false);
             }
         };
 
         fetchData();
-    }, [deviceId, timeRange]);
+    }, [deviceId, timeRange, pageSize]);
 
-    if (loading) {
+    // Handle the "Load More" click
+    const handleLoadMore = () => {
+        setPageSize((prev) => prev + PAGE_SIZE);
+    };
+
+    if (loading && trips.length === 0) {
         return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
     }
 
@@ -139,12 +150,21 @@ export default function Index() {
                 <section>
                     <div className="flex items-center justify-between mb-3">
                         <p className="section-title">Letzte Fahrten</p>
-                        <button className="text-sm text-primary hover:underline">
+                        <button 
+                            className="text-sm text-primary hover:underline"
+                            // Optional: Could link to a dedicated full history page
+                        >
                             Alle anzeigen
                         </button>
                     </div>
-                    {/* We now pass the raw 'trips' state, as it contains only the relevant data */}
-                    <LatestTrips trips={trips} />
+                    
+                    <LatestTrips 
+                        trips={trips} 
+                        onLoadMore={handleLoadMore}
+                        loading={isFetchingMore}
+                        // Heuristic: If we got fewer items than requested, we reached the end
+                        hasMore={trips.length >= pageSize}
+                    />
                 </section>
             </main>
         </div>
