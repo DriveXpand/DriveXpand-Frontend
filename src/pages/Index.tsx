@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { DrivingTimeChart } from "@/components/DrivingTimeChart";
 import { getTrips, getTripsPerWeekday, getAllDevices } from "@/lib/api";
 import type { TripEntity } from "@/types/api";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom"; // Added useNavigate
 import { LatestTrips } from "../components/LatestTrips";
 import type { TimeRange } from "../types/ui";
 
@@ -27,6 +27,7 @@ export default function Index() {
     }, [timeRange]);
 
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const deviceId = searchParams.get("device");
 
     // 1. Ensure the device ID is set in the URL
@@ -79,34 +80,27 @@ export default function Index() {
                 } else if (timeRange === "last_6_months") {
                     since = new Date(now.getFullYear(), now.getMonth() - 6, 1);
                 } else if (timeRange === "this_year") {
-                    // Month 0 is January
                     since = new Date(now.getFullYear(), 0, 1);
                 } else if (timeRange === "last_year") {
-                    // January 1st of previous year
                     since = new Date(now.getFullYear() - 1, 0, 1);
-                    // Day 0 of Month 0 (January) of current year gives Dec 31 of previous year
                     end = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
                 }
 
-                // We fetch both, but often weekday data doesn't need to change on pagination.
-                // However, to keep it simple and accurate to the filtered range, we refetch.
                 const [tripsData, weekdayDataRaw] = await Promise.all([
                     getTrips(
                         deviceId,
                         since,
                         end,
                         undefined,
-                        pageSize // Dynamic page size
+                        pageSize
                     ),
                     getTripsPerWeekday(deviceId),
                 ]);
 
                 const tripsArray = Object.values(tripsData);
-                // Sort by time descending
                 tripsArray.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
                 setTrips(tripsArray);
 
-                // Process Weekday Data
                 const weekdayMap: Record<string, string> = {
                     MONDAY: "Mo", TUESDAY: "Di", WEDNESDAY: "Mi",
                     THURSDAY: "Do", FRIDAY: "Fr", SATURDAY: "Sa", SUNDAY: "So",
@@ -131,9 +125,14 @@ export default function Index() {
         fetchData();
     }, [deviceId, timeRange, pageSize]);
 
-    // Handle the "Load More" click
     const handleLoadMore = () => {
         setPageSize((prev) => prev + PAGE_SIZE);
+    };
+
+    const handleShowAll = () => {
+        if (deviceId) {
+            navigate(`/history?device=${deviceId}`);
+        }
     };
 
     if (loading && trips.length === 0) {
@@ -159,8 +158,8 @@ export default function Index() {
                     <div className="flex items-center justify-between mb-3">
                         <p className="section-title">Letzte Fahrten</p>
                         <button
+                            onClick={handleShowAll}
                             className="text-sm text-primary hover:underline"
-                        // Optional: Could link to a dedicated full history page
                         >
                             Alle anzeigen
                         </button>
@@ -170,7 +169,6 @@ export default function Index() {
                         trips={trips}
                         onLoadMore={handleLoadMore}
                         loading={isFetchingMore}
-                        // Heuristic: If we got fewer items than requested, we reached the end
                         hasMore={trips.length >= pageSize}
                     />
                 </section>
