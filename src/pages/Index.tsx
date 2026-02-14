@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { DrivingTimeChart } from "@/components/DrivingTimeChart";
-// Consolidated your api imports here
 import { getTrips, getTripsPerWeekday, getAllDevices } from "@/lib/api";
 import type { TripEntity } from "@/types/api";
 import { useSearchParams } from "react-router-dom";
@@ -14,7 +13,6 @@ export default function Index() {
     const [loading, setLoading] = useState(true);
 
     const [timeRange, setTimeRange] = useState<TimeRange>(() => {
-        // Initialize from LocalStorage or default to 'this_month'
         const saved = localStorage.getItem("trip_filter_range");
         return (saved as TimeRange) || "this_month";
     });
@@ -23,11 +21,10 @@ export default function Index() {
         localStorage.setItem("trip_filter_range", timeRange);
     }, [timeRange]);
 
-    // Grab setSearchParams so we can update the URL
     const [searchParams, setSearchParams] = useSearchParams();
     const deviceId = searchParams.get("device");
 
-    // 1. Ensure the device ID is set in the URL right at the beginning
+    // 1. Ensure the device ID is set in the URL
     useEffect(() => {
         if (!deviceId) {
             const initDefaultDevice = async () => {
@@ -44,28 +41,51 @@ export default function Index() {
                     }
                 } catch (error) {
                     console.error("Failed to fetch default device:", error);
-                    setLoading(false); // Prevent infinite loading if the API fails
+                    setLoading(false);
                 }
             };
             initDefaultDevice();
         }
     }, [deviceId, setSearchParams]);
 
-    // 2. Fetch the trip data ONLY when we actually have a deviceId in the URL
+    // 2. Fetch data when Device ID OR TimeRange changes
     useEffect(() => {
-        // Bail out early if we are still waiting for the first useEffect to set the URL
         if (!deviceId) return;
 
         const fetchData = async () => {
             setLoading(true);
             try {
+                // Calculate date params for server-side filtering
+                const now = new Date();
+                let since: Date | undefined;
+                let end: Date | undefined;
+
+                // Simple date logic to match the previous filters
+                if (timeRange === "this_month") {
+                    since = new Date(now.getFullYear(), now.getMonth(), 1);
+                } else if (timeRange === "last_month") {
+                    since = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                } else if (timeRange === "last_3_months") {
+                    since = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+                } else if (timeRange === "last_6_months") {
+                    since = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+                }
+
                 const [tripsData, weekdayDataRaw] = await Promise.all([
-                    getTrips(deviceId),
+                    // Pass parameters to API to reduce payload size
+                    getTrips(
+                        deviceId, 
+                        since, 
+                        end, 
+                        undefined, // timeBetweenTripsInSeconds
+                        50 // pageSize: Limit to 50 latest trips to prevent frontend struggle
+                    ),
                     getTripsPerWeekday(deviceId),
                 ]);
 
                 // Convert trips object to array
                 const tripsArray = Object.values(tripsData);
+
                 setTrips(tripsArray);
 
                 // Convert weekday data to chart format
@@ -95,34 +115,7 @@ export default function Index() {
         };
 
         fetchData();
-    }, [deviceId]); // Now this securely depends on the URL parameter!
-
-    const filteredTrips = useMemo(() => {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-
-        return trips.filter((trip) => {
-            const tripDate = new Date(trip.startTime);
-            
-            if (timeRange === "this_month") {
-                return tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear;
-            }
-            if (timeRange === "last_month") {
-                const lastMonthDate = new Date(currentYear, currentMonth - 1, 1);
-                return tripDate.getMonth() === lastMonthDate.getMonth() && tripDate.getFullYear() === lastMonthDate.getFullYear();
-            }
-            if (timeRange === "last_3_months") {
-                const threeMonthsAgo = new Date(currentYear, currentMonth - 3, 1);
-                return tripDate >= threeMonthsAgo;
-            }
-            if (timeRange === "last_6_months") {
-                const sixMonthsAgo = new Date(currentYear, currentMonth - 6, 1);
-                return tripDate >= sixMonthsAgo;
-            }
-            return true;
-        });
-    }, [trips, timeRange]);
+    }, [deviceId, timeRange]);
 
     if (loading) {
         return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -150,8 +143,8 @@ export default function Index() {
                             Alle anzeigen
                         </button>
                     </div>
-                    {/* Pass the FILTERED trips here */}
-                    <LatestTrips trips={filteredTrips} />
+                    {/* We now pass the raw 'trips' state, as it contains only the relevant data */}
+                    <LatestTrips trips={trips} />
                 </section>
             </main>
         </div>
