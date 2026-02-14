@@ -65,7 +65,7 @@ export async function getTrips(
   const params = new URLSearchParams({ deviceId });
   if (since) params.append("since", since.toISOString());
   if (end) params.append("end", end.toISOString());
-  if (end) params.append("pageSize", pageSize.toISOString());
+  if (pageSize) params.append("pageSize", pageSize.toString());
   if (timeBetweenTripsInSeconds)
     params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
 
