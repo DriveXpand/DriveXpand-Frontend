@@ -19,7 +19,7 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy our custom nginx config (see step 2 below)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Expose port 80 (standard web port) inside the container
 EXPOSE 80

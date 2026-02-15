@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# Frontend Configuration (Docker Compose)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This service runs the **DriveXpand Frontend**, a React application served via Nginx. It is designed to be configured dynamically using environment variables in `docker-compose.yml`.
 
-Currently, two official plugins are available:
+### Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Add the following service definition to your `docker-compose.yml` file:
 
-## React Compiler
+```yaml
+services:
+  # ... other services (e.g., your backend 'app') ...
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+  frontend-image:
+    image: ghcr.io/drivexpand/drivexpand-frontend:latest
+    container_name: drivexpand-frontend
+    restart: always
+    depends_on:
+      - app
+    ports:
+      - "8070:80"
+    environment:
+      # URL of the backend service (internal Docker network URL)
+      - BACKEND_URL=http://app:8080
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Configuration Options
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Environment Variable | Description | Default | Example |
+| --- | --- | --- | --- |
+| `BACKEND_URL` | The URL of the backend API service. This is used by Nginx to proxy API requests (avoiding CORS issues). | *None* (Required) | `http://app:8080` or `http://backend-service:3000` |
+| `PORT` (External) | The port on your host machine where the frontend will be accessible. | `80` (Internal) | `8070:80` (Access at `http://localhost:8070`) |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Troubleshooting
+
+If the application loads but API calls (login, data fetching) fail with **404** or **502 Bad Gateway**:
+
+1. **Check the logs** to ensure Nginx substituted the variable correctly:
+```bash
+docker logs drivexpand-frontend
+
 ```
+
+
+*Look for lines mentioning `envsubst` or the start of the Nginx process.*
+2. **Verify the Configuration** inside the running container:
+```bash
+docker exec drivexpand-frontend cat /etc/nginx/conf.d/default.conf
+
+```
+
+
+*Ensure the `proxy_pass` directive shows the actual URL (e.g., `http://app:8080`) and not the variable `${BACKEND_URL}`.*
+3. **Network Check:** Ensure the container name in `BACKEND_URL` matches the service name of your backend in `docker-compose.yml` (e.g., `app`).
