@@ -1,61 +1,55 @@
-export interface Device {
-  id?: string;
-  name?: string;
-  manufacturer?: string;
+// Device
+export interface DeviceEntity {
+  deviceId: string;
+  name: string;
 }
 
-export interface VehicleConnectRequest {
-  device_id: string;
-  vehicle_model: string;
+// Telemetry
+export interface TelemetryResponse {
+  id: string; // uuid
+  deviceId: string;
+  tripId: string; // uuid
+  start_time: string; // date-time
+  end_time: string; // date-time
+  timed_data: Record<string, unknown>;
+  aggregated_data: Record<string, unknown>;
 }
 
-export interface Vehicle {
-  id?: string;
-  model?: string;
+export interface TelemetryIngestRequest {
+  deviceId: string;
+  start_time: number; // epoch timestamp
+  end_time?: number;
+  aggregated_data?: Record<string, unknown>;
+  timed_data?: Record<string, unknown>;
+  errors?: Record<string, unknown>;
 }
 
-export interface VehicleStats {
-  total_km?: number;
-  avg_speed?: number;
-  total_drive_time_minutes?: number;
-  trip_count?: number;
+// Trip
+export interface TripResponse {
+  id: string; // uuid
+  deviceId: string;
+  startTime: string; // date-time
+  endTime: string; // date-time
+  startLocation: string;
+  endLocation: string;
 }
 
-export interface DayValue {
-  day?: string; // e.g., "Mo"
-  value?: number;
+export interface TripDetailsResponse {
+  id: string; // uuid
+  deviceId: string;
+  startTime: string; // date-time
+  endTime: string; // date-time
+  startLocation: string;
+  endLocation: string;
+  timed_data: Array<Record<string, unknown>>;
+  aggregated_data: Array<Record<string, unknown>>;
 }
 
-export interface TimeBucket {
-  label?: string; // e.g., "Morning"
-  value?: number;
+export interface TripUpdateRequest {
+  startLocation?: string;
+  endLocation?: string;
 }
 
-export type SafetyEventType = 'HARD_BRAKE' | 'RAPID_ACCELERATION';
-
-export interface SafetyEvent {
-  timestamp?: string; // ISO date-time string
-  type?: SafetyEventType;
-}
-
-export interface VehicleAnalysis {
-  weekday_usage?: DayValue[];
-  time_of_day_usage?: TimeBucket[];
-  safety_events?: SafetyEvent[];
-}
-
-export interface Achievement {
-  name?: string;
-  achieved?: boolean;
-  progress_percent?: number;
-}
-
-export interface Trip {
-  trip_id?: string;
-  datum_uhrzeit_start?: string; // e.g., "2026-01-15 14:32"
-  datum_uhrzeit_ende?: string;
-  km?: number;
-  dauer?: string;
-  avg_speed?: string;
-  tag?: string;
+export interface TripEntity extends TripResponse {
+  device: DeviceEntity;
 }
