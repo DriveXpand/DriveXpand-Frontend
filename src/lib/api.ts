@@ -2,24 +2,66 @@ import type { DeviceEntity, TripDetailsResponse, TelemetryResponse } from "../ty
 
 const API_BASE_URL = "/api";
 
-// Helper for API calls
+// --- Types for Auth ---
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface User {
+  username: string;
+  message?: string;
+}
+
+// --- Helper for API calls ---
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
     },
+    credentials: "include", 
     ...options,
   });
 
   if (!response.ok) {
+    // Optional: Handle 401 Unauthorized specifically if needed
+    if (response.status === 401) {
+        throw new Error("Unauthorized");
+    }
     throw new Error(`API error: ${response.statusText}`);
   }
 
-  return response.json();
+  // Check if response is JSON before parsing
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  // Return text for non-JSON responses (like logout) or null
+  return response.text() as unknown as T;
 }
 
-// Devices
+// --- Auth ---
+export async function login(credentials: LoginCredentials): Promise<User> {
+  return apiCall<User>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(credentials),
+  });
+}
+
+// Call this on app load to check if the HttpOnly cookie is valid
+export async function getCurrentUser(): Promise<User> {
+  return apiCall<User>("/auth/me");
+}
+
+export async function logout(): Promise<void> {
+  return apiCall<void>("/auth/logout", {
+    method: "POST",
+  });
+}
+
+// --- Devices ---
 export async function getAllDevices(): Promise<DeviceEntity[]> {
   return apiCall<DeviceEntity[]>("/devices");
 }
@@ -30,11 +72,11 @@ export async function updateDeviceName(
 ): Promise<DeviceEntity> {
   return apiCall<DeviceEntity>(`/devices/${deviceId}/name`, {
     method: "PUT",
-    body: name,
+    body: name, // Note: Backend likely expects raw string or JSON based on your original code
   });
 }
 
-// Telemetry
+// --- Telemetry ---
 export async function getTelemetry(
   deviceId: string,
   since?: Date,
@@ -53,7 +95,7 @@ export async function getLatestTelemetry(deviceId: string): Promise<TelemetryRes
   return apiCall<TelemetryResponse>(`/telemetry/latest?deviceId=${deviceId}`);
 }
 
-// Trips
+// --- Trips ---
 export async function getTrips(
   deviceId: string,
   since?: Date,
@@ -112,7 +154,7 @@ export async function updateTrip(
   });
 }
 
-// Vehicle Stats
+// --- Vehicle Stats ---
 export async function getVehicleStats(
   deviceId: string,
   since: Date,
