@@ -8,13 +8,13 @@ import { LatestTrips } from "../components/LatestTrips";
 import type { TimeRange } from "../types/ui";
 
 export default function Index() {
-    const PAGE_SIZE = 20
+    const PAGE_SIZE = 2;
     const [trips, setTrips] = useState<TripEntity[]>([]);
     const [weekdayData, setWeekdayData] = useState<Array<{ day: string; value: number }>>([]);
 
     const [loading, setLoading] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
-    const [pageSize, setPageSize] = useState(PAGE_SIZE);
+    const [page, setPage] = useState(0);
 
     const [timeRange, setTimeRange] = useState<TimeRange>(() => {
         const saved = localStorage.getItem("trip_filter_range");
@@ -23,7 +23,7 @@ export default function Index() {
 
     useEffect(() => {
         localStorage.setItem("trip_filter_range", timeRange);
-        setPageSize(PAGE_SIZE);
+        setPage(0);
     }, [timeRange]);
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -91,15 +91,16 @@ export default function Index() {
                         deviceId,
                         since,
                         end,
-                        undefined,
-                        pageSize
+                        page,
+                        PAGE_SIZE
                     ),
                     getTripsPerWeekday(deviceId),
                 ]);
 
                 const tripsArray = Object.values(tripsData);
-                tripsArray.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-                setTrips(tripsArray);
+                const loadedTrips = [...trips, ...tripsArray]
+                loadedTrips.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+                setTrips(loadedTrips);
 
                 const weekdayMap: Record<string, string> = {
                     MONDAY: "Mo", TUESDAY: "Di", WEDNESDAY: "Mi",
@@ -123,10 +124,10 @@ export default function Index() {
         };
 
         fetchData();
-    }, [deviceId, timeRange, pageSize]);
+    }, [deviceId, timeRange, page]);
 
     const handleLoadMore = () => {
-        setPageSize((prev) => prev + PAGE_SIZE);
+        setPage((prev) => prev + 1);
     };
 
     const handleShowAll = () => {
@@ -169,7 +170,7 @@ export default function Index() {
                         trips={trips}
                         onLoadMore={handleLoadMore}
                         loading={isFetchingMore}
-                        hasMore={trips.length >= pageSize}
+                        hasMore={trips.length >= PAGE_SIZE}
                     />
                 </section>
             </main>
