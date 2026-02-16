@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { DrivingTimeChart } from "@/components/DrivingTimeChart";
-import { getTrips, getTripsPerWeekday, getAllDevices } from "@/lib/api";
-import type { TripEntity } from "@/types/api";
+import { getTrips, getTripsPerWeekday, getAllDevices, getVehicleStats } from "@/lib/api";
+import type { TripEntity, VehicleStats } from "@/types/api";
 import { useSearchParams, useNavigate } from "react-router-dom"; // Added useNavigate
 import { LatestTrips } from "../components/LatestTrips";
 import type { TimeRange } from "../types/ui";
+import VehicleStatsDashboard from "@/components/VehicleStats";
 
 export default function Index() {
     const PAGE_SIZE = 20;
@@ -21,6 +22,8 @@ export default function Index() {
         const saved = localStorage.getItem("trip_filter_range");
         return (saved as TimeRange) || "this_month";
     });
+
+    const [vehicleStats, setVehicleStats] = useState<VehicleStats>();
 
     useEffect(() => {
         localStorage.setItem("trip_filter_range", timeRange);
@@ -122,6 +125,17 @@ export default function Index() {
     useEffect(() => {
         if (!deviceId) return;
 
+        const fetchVehicleData = async () => {
+            try {
+                const fetched = await getVehicleStats(deviceId);
+                setVehicleStats(fetched);
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+                setLoading(false);
+                setIsFetchingMore(false);
+            }
+        }
+
         const fetchWeekDateData = async () => {
             try {
                 const weekdayDataRaw = await getTripsPerWeekday(deviceId);
@@ -145,6 +159,7 @@ export default function Index() {
                 setIsFetchingMore(false);
             }
         };
+        fetchVehicleData();
         fetchWeekDateData();
     }, [deviceId]);
 
@@ -170,6 +185,14 @@ export default function Index() {
             />
 
             <main className="container mx-auto py-6">
+
+                <section className="mb-8">
+                    <VehicleStatsDashboard
+                        stats={vehicleStats}
+                        isLoading={loading}
+                    />
+                </section>
+
                 {weekdayData.length > 0 && (
                     <section className="mb-8">
                         <p className="section-title mb-3">Wann fährst du?</p>

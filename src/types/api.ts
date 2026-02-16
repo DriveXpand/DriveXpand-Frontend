@@ -54,3 +54,17 @@ export interface TripEntity extends TripResponse {
   device: DeviceEntity;
   trip_distance_km: number;
 }
+
+export interface VehicleStats {
+  trip_count: number,
+  total_drive_time_minutes: number,
+  total_km: number,
+  avg_speed: number,
+}
+
+export interface VehicleNotes {
+  date: string, // date-time,
+  note: string,
+  cost?: number,
+}
+

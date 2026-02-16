@@ -1,4 +1,4 @@
-import type { DeviceEntity, TripDetailsResponse, TelemetryResponse, TripEntity } from "../types/api";
+import type { DeviceEntity, TripDetailsResponse, TelemetryResponse, TripEntity, VehicleNotes, VehicleStats } from "../types/api";
 
 const API_BASE_URL = "/api";
 
@@ -154,19 +154,73 @@ export async function updateTrip(
 }
 
 // --- Vehicle Stats ---
+// export async function getVehicleStats(
+//   deviceId: string,
+//   since?: Date,
+//   end?: Date,
+//   timeBetweenTripsInSeconds?: number
+// ): Promise<VehicleStats> {
+//   const params = new URLSearchParams({
+//     deviceId,
+//     since: since.toISOString(),
+//     end: end.toISOString(),
+//   });
+//   if (timeBetweenTripsInSeconds)
+//     params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
+//
+//   return apiCall<VehicleStats>(`/devices/stats?${params}`);
+// }
+
+
+// TODO: REMOVE >>>>
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function getVehicleStats(
   deviceId: string,
-  since: Date,
-  end: Date,
+  since?: Date,
+  end?: Date,
   timeBetweenTripsInSeconds?: number
-): Promise<Record<string, unknown>> {
-  const params = new URLSearchParams({
-    deviceId,
-    since: since.toISOString(),
-    end: end.toISOString(),
-  });
-  if (timeBetweenTripsInSeconds)
-    params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
+): Promise<VehicleStats> {
+  await delay(800); // Simulate 800ms API lag
 
-  return apiCall<Record<string, unknown>>(`/devices/stats?${params}`);
-}
+  return {
+    trip_count: 42,
+    total_drive_time_minutes: 1240, // approx 20.6 hours
+    total_km: 1540.5,
+    avg_speed: 74.5, // km/h
+  };
+};
+
+/**
+ * Fetches hardcoded vehicle notes.
+ */
+export async function getVehicleNotes(
+  deviceId: string,
+  since?: Date,
+  end?: Date
+): Promise<VehicleNotes[]> {
+  await delay(1200); // Simulate 1.2s API lag
+
+  return [
+    {
+      date: "2023-10-15T08:30:00Z",
+      note: "Routine oil change and filter replacement.",
+      cost: 89.99,
+    },
+    {
+      date: "2023-11-02T14:15:00Z",
+      note: "Tire rotation and pressure check.",
+      cost: 45.00,
+    },
+    {
+      date: "2023-12-10T09:00:00Z",
+      note: "Strange rattling noise heard from the rear passenger side. Mechanic found nothing.",
+    },
+    {
+      date: "2024-01-05T17:45:00Z",
+      note: "Refueled at highway station.",
+      cost: 65.50,
+    },
+  ];
+};
+// <<<< TODO: REMOVE
