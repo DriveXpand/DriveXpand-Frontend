@@ -20,7 +20,7 @@ export function TripCard({ trip, onClick, onUpdate }: TripCardProps) {
 
     // Format distance based on your requirement
     const formattedDistance = trip.trip_distance_km !== undefined && trip.trip_distance_km !== null
-        ? `${trip.trip_distance_km.toFixed(3).toString().replace(".", ",")} km`
+        ? `${trip.trip_distance_km.toFixed(3).toString()} km`
         : null;
 
     const [currentStartLoc, setCurrentStartLoc] = useState(trip.startLocation);

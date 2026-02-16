@@ -119,7 +119,7 @@ export default function History() {
                                             <div className="text-left">
                                                 <div className="font-semibold text-lg">{formatMonthHeader(key)}</div>
                                                 <div className="text-sm text-muted-foreground">
-                                                    {monthTrips.length} Fahrten • {totalDistance.toFixed(3).toString().replace(".", ",")} km
+                                                    {monthTrips.length} Fahrten • {totalDistance.toFixed(3).toString()} km
                                                 </div>
                                             </div>
                                         </div>

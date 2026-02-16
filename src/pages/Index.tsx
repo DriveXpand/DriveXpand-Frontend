@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { DrivingTimeChart } from "@/components/DrivingTimeChart";
 import { getTrips, getTripsPerWeekday, getAllDevices, getVehicleStats } from "@/lib/api";
 import type { TripEntity, VehicleStats } from "@/types/api";
-import { useSearchParams, useNavigate } from "react-router-dom"; // Added useNavigate
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { LatestTrips } from "../components/LatestTrips";
 import type { TimeRange } from "../types/ui";
 import VehicleStatsDashboard from "@/components/VehicleStats";
@@ -25,18 +25,17 @@ export default function Index() {
 
     const [vehicleStats, setVehicleStats] = useState<VehicleStats>();
 
-    useEffect(() => {
-        setTrips([]);
-    }, [timeRange]);
-
-    useEffect(() => {
-        localStorage.setItem("trip_filter_range", timeRange);
-        setPage(0);
-    }, [timeRange]);
-
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const deviceId = searchParams.get("device");
+
+    // Reset page and clear data when Device OR TimeRange changes
+    useEffect(() => {
+        localStorage.setItem("trip_filter_range", timeRange);
+        setPage(0);
+        setHasMore(true);
+        setTrips([]); // Clear immediately so user sees loading state
+    }, [timeRange, deviceId]);
 
     // 1. Ensure the device ID is set in the URL
     useEffect(() => {
@@ -67,7 +66,8 @@ export default function Index() {
         if (!deviceId) return;
 
         const fetchTripsData = async () => {
-            if (trips.length === 0) {
+            // Determine if this is a fresh load or a "load more" action
+            if (page === 0) {
                 setLoading(true);
             } else {
                 setIsFetchingMore(true);
@@ -103,14 +103,20 @@ export default function Index() {
 
                 const tripsArray = Object.values(tripsData);
 
-                // If we got fewer results than the PAGE_SIZE, we know we've hit the end.
                 if (tripsArray.length < PAGE_SIZE) {
                     setHasMore(false);
                 }
 
-                const loadedTrips = [...trips, ...tripsArray]
-                loadedTrips.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-                setTrips(loadedTrips);
+                // Only merge if we are not on the first page
+                setTrips(prev => {
+                    const sortedNew = tripsArray.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
+                    if (page === 0) {
+                        return sortedNew;
+                    }
+                    return [...prev, ...sortedNew];
+                });
+
             } catch (error) {
                 console.error("Failed to fetch data:", error);
             } finally {
@@ -118,10 +124,11 @@ export default function Index() {
                 setIsFetchingMore(false);
             }
         };
+
         fetchTripsData();
     }, [deviceId, timeRange, page]);
 
-    // 2. Fetch data when Device ID changes
+    // 3. Fetch Vehicle Stats
     useEffect(() => {
         if (!deviceId) return;
 
@@ -130,9 +137,7 @@ export default function Index() {
                 const fetched = await getVehicleStats(deviceId);
                 setVehicleStats(fetched);
             } catch (error) {
-                console.error("Failed to fetch data:", error);
-                setLoading(false);
-                setIsFetchingMore(false);
+                console.error("Failed to fetch vehicle stats:", error);
             }
         }
 
@@ -153,12 +158,14 @@ export default function Index() {
                 setWeekdayData(weekdayDataFormatted);
 
             } catch (error) {
-                console.error("Failed to fetch data:", error);
-            } finally {
-                setLoading(false);
-                setIsFetchingMore(false);
+                console.error("Failed to fetch weekday data:", error);
             }
         };
+
+        // Reset these stats visually before fetching
+        setVehicleStats(undefined);
+        setWeekdayData([]);
+
         fetchVehicleData();
         fetchWeekDateData();
     }, [deviceId]);
@@ -173,6 +180,7 @@ export default function Index() {
         }
     };
 
+    // Improved loading check
     if (loading && trips.length === 0) {
         return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
     }
@@ -189,7 +197,7 @@ export default function Index() {
                 <section className="mb-8">
                     <VehicleStatsDashboard
                         stats={vehicleStats}
-                        isLoading={loading}
+                        isLoading={loading && !vehicleStats}
                     />
                 </section>
 
