@@ -1,12 +1,12 @@
-import { Pencil, MapPin, X } from "lucide-react";
+import { Pencil, MapPin, X, Route } from "lucide-react"; // Added Route icon
 import type { TripEntity } from "../types/api";
 import { useState } from 'react';
-import { updateTrip } from "../lib/api"; // Pfad anpassen
+import { updateTrip } from "../lib/api";
 
 interface TripCardProps {
     trip: TripEntity;
     onClick?: () => void;
-    onUpdate?: () => void; // Optional: Um die Liste nach dem Update neu zu laden
+    onUpdate?: () => void;
 }
 
 export function TripCard({ trip, onClick, onUpdate }: TripCardProps) {
@@ -18,6 +18,11 @@ export function TripCard({ trip, onClick, onUpdate }: TripCardProps) {
     const date = trip.startTime ? new Date(trip.startTime).toLocaleDateString() : 'N/A';
     const time = trip.startTime ? new Date(trip.startTime).toLocaleTimeString() : 'N/A';
 
+    // Format distance based on your requirement
+    const formattedDistance = trip.trip_distance_km !== undefined && trip.trip_distance_km !== null
+        ? `${trip.trip_distance_km.toFixed(3).toString().replace(".", ",")} km`
+        : null;
+
     const [currentStartLoc, setCurrentStartLoc] = useState(trip.startLocation);
     const [currentEndLoc, setCurrentEndLoc] = useState(trip.endLocation);
 
@@ -25,10 +30,9 @@ export function TripCard({ trip, onClick, onUpdate }: TripCardProps) {
         e.preventDefault();
         setIsSaving(true);
         try {
-            // API Aufruf mit der tripId aus dem trip Objekt
             await updateTrip(trip.id, startLoc, endLoc);
             setIsModalOpen(false);
-            if (onUpdate) onUpdate(); // Trigger Refresh in der Parent-Komponente
+            if (onUpdate) onUpdate();
             setCurrentStartLoc(startLoc);
             setCurrentEndLoc(endLoc);
         } catch (error) {
@@ -47,10 +51,25 @@ export function TripCard({ trip, onClick, onUpdate }: TripCardProps) {
             >
                 <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-medium">{date}</span>
-                            <span className="text-sm text-muted-foreground">{time}</span>
+                        {/* Header Row: Date | Time | Distance */}
+                        <div className="flex items-center gap-3 mb-2 text-sm">
+                            <div className="flex gap-2">
+                                <span className="font-medium">{date}</span>
+                                <span className="text-muted-foreground">{time}</span>
+                            </div>
+
+                            {formattedDistance && (
+                                <>
+                                    <span className="text-muted-foreground/40">|</span>
+                                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                                        <Route className="w-3.5 h-3.5" />
+                                        <span>{formattedDistance}</span>
+                                    </div>
+                                </>
+                            )}
                         </div>
+
+                        {/* Location Row */}
                         <div className="flex items-center gap-2 text-sm mb-2">
                             <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="truncate">{currentStartLoc || "Unbekannt"}</span>
@@ -61,7 +80,7 @@ export function TripCard({ trip, onClick, onUpdate }: TripCardProps) {
 
                     <button
                         onClick={(e) => {
-                            e.stopPropagation(); // Verhindert onClick der Karte
+                            e.stopPropagation();
                             setIsModalOpen(true);
                         }}
                         className="p-2 hover:bg-secondary rounded-full transition-colors"
