@@ -52,4 +52,5 @@ export interface TripUpdateRequest {
 
 export interface TripEntity extends TripResponse {
   device: DeviceEntity;
+  trip_distance_km: number;
 }

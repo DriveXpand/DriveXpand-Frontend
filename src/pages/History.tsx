@@ -12,7 +12,7 @@ export default function History() {
 
     const [trips, setTrips] = useState<TripEntity[]>([]);
     const [loading, setLoading] = useState(true);
-    
+
     // Track which months are expanded. Set<String> of "YYYY-MM"
     const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
 
@@ -29,7 +29,7 @@ export default function History() {
                 // Sort absolute latest first
                 tripsArray.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
                 setTrips(tripsArray);
-                
+
                 // Auto-expand the very first (current) month
                 if (tripsArray.length > 0) {
                     const firstDate = new Date(tripsArray[0].startTime);
@@ -53,16 +53,16 @@ export default function History() {
         trips.forEach((trip) => {
             const date = new Date(trip.startTime);
             // Key format: "YYYY-MM" (e.g., "2023-10")
-            const key = `${date.getFullYear()}-${date.getMonth()}`; 
+            const key = `${date.getFullYear()}-${date.getMonth()}`;
             if (!groups[key]) groups[key] = [];
             groups[key].push(trip);
         });
 
         // Return entries sorted by date descending (Newest month first)
         return Object.entries(groups).sort((a, b) => {
-             const [yearA, monthA] = a[0].split('-').map(Number);
-             const [yearB, monthB] = b[0].split('-').map(Number);
-             return (yearB - yearA) || (monthB - monthA);
+            const [yearA, monthA] = a[0].split('-').map(Number);
+            const [yearB, monthB] = b[0].split('-').map(Number);
+            return (yearB - yearA) || (monthB - monthA);
         });
     }, [trips]);
 
@@ -88,7 +88,7 @@ export default function History() {
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto py-6">
-                
+
                 {/* Header with Back Button */}
                 <div className="flex items-center mb-6">
                     <button onClick={() => navigate(-1)} className="mr-4 p-2 hover:bg-gray-100 rounded-full">
@@ -103,14 +103,14 @@ export default function History() {
                     <div className="space-y-4">
                         {groupedTrips.map(([key, monthTrips]) => {
                             const isExpanded = expandedMonths.has(key);
-                            
+
                             // Calculate summary stats for the month header
-                            const totalDistance = monthTrips.reduce((acc, t) => acc + (t.distance || 0), 0);
-                            
+                            const totalDistance = monthTrips.reduce((acc, t) => acc + (t.trip_distance_km || 0), 0);
+
                             return (
                                 <div key={key} className="border rounded-lg bg-card shadow-sm overflow-hidden">
                                     {/* Month Header (Clickable) */}
-                                    <button 
+                                    <button
                                         onClick={() => toggleMonth(key)}
                                         className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 transition-colors"
                                     >
@@ -119,7 +119,7 @@ export default function History() {
                                             <div className="text-left">
                                                 <div className="font-semibold text-lg">{formatMonthHeader(key)}</div>
                                                 <div className="text-sm text-muted-foreground">
-                                                    {monthTrips.length} Fahrten • {(totalDistance / 1000).toFixed(1)} km
+                                                    {monthTrips.length} Fahrten • {totalDistance.toFixed(3).toString().replace(".", ",")} km
                                                 </div>
                                             </div>
                                         </div>
@@ -130,11 +130,11 @@ export default function History() {
                                     {isExpanded && (
                                         <div className="p-4 border-t animate-in slide-in-from-top-2 duration-200">
                                             {/* Reuse existing list component, but hide 'Load More' */}
-                                            <LatestTrips 
-                                                trips={monthTrips} 
-                                                loading={false} 
-                                                hasMore={false} 
-                                                onLoadMore={() => {}} 
+                                            <LatestTrips
+                                                trips={monthTrips}
+                                                loading={false}
+                                                hasMore={false}
+                                                onLoadMore={() => { }}
                                             />
                                         </div>
                                     )}

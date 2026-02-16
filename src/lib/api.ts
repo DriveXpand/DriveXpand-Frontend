@@ -1,4 +1,4 @@
-import type { DeviceEntity, TripDetailsResponse, TelemetryResponse } from "../types/api";
+import type { DeviceEntity, TripDetailsResponse, TelemetryResponse, TripEntity } from "../types/api";
 
 const API_BASE_URL = "/api";
 
@@ -20,14 +20,14 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
       "Content-Type": "application/json",
       ...options?.headers,
     },
-    credentials: "include", 
+    credentials: "include",
     ...options,
   });
 
   if (!response.ok) {
     // Optional: Handle 401 Unauthorized specifically if needed
     if (response.status === 401) {
-        throw new Error("Unauthorized");
+      throw new Error("Unauthorized");
     }
     throw new Error(`API error: ${response.statusText}`);
   }
@@ -100,17 +100,16 @@ export async function getTrips(
   deviceId: string,
   since?: Date,
   end?: Date,
-  timeBetweenTripsInSeconds?: number,
+  page?: number,
   pageSize?: number
-): Promise<Record<string, TripDetailsResponse>> {
+): Promise<Record<string, TripEntity>> {
   const params = new URLSearchParams({ deviceId });
   if (since) params.append("since", since.toISOString());
   if (end) params.append("end", end.toISOString());
+  if (page) params.append("page", page.toString());
   if (pageSize) params.append("pageSize", pageSize.toString());
-  if (timeBetweenTripsInSeconds)
-    params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
 
-  return apiCall<Record<string, TripDetailsResponse>>(`/trips/list?${params}`);
+  return apiCall<Record<string, TripEntity>>(`/trips/list?${params}`);
 }
 
 export async function getTripsTelemetry(
