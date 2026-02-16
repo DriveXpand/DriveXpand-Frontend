@@ -8,13 +8,14 @@ import { LatestTrips } from "../components/LatestTrips";
 import type { TimeRange } from "../types/ui";
 
 export default function Index() {
-    const PAGE_SIZE = 2;
+    const PAGE_SIZE = 20;
     const [trips, setTrips] = useState<TripEntity[]>([]);
     const [weekdayData, setWeekdayData] = useState<Array<{ day: string; value: number }>>([]);
 
     const [loading, setLoading] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
 
     const [timeRange, setTimeRange] = useState<TimeRange>(() => {
         const saved = localStorage.getItem("trip_filter_range");
@@ -58,7 +59,7 @@ export default function Index() {
     useEffect(() => {
         if (!deviceId) return;
 
-        const fetchData = async () => {
+        const fetchTripsData = async () => {
             if (trips.length === 0) {
                 setLoading(true);
             } else {
@@ -86,22 +87,44 @@ export default function Index() {
                     end = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
                 }
 
-                const [tripsData, weekdayDataRaw] = await Promise.all([
-                    getTrips(
-                        deviceId,
-                        since,
-                        end,
-                        page,
-                        PAGE_SIZE
-                    ),
-                    getTripsPerWeekday(deviceId),
-                ]);
+                const tripsData = await getTrips(
+                    deviceId,
+                    since,
+                    end,
+                    page,
+                    PAGE_SIZE);
 
                 const tripsArray = Object.values(tripsData);
+
+                // If we got fewer results than the PAGE_SIZE, we know we've hit the end.
+                if (tripsArray.length < PAGE_SIZE) {
+                    setHasMore(false);
+                }
+
                 const loadedTrips = [...trips, ...tripsArray]
                 loadedTrips.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
                 setTrips(loadedTrips);
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+            } finally {
+                setLoading(false);
+                setIsFetchingMore(false);
+            }
+        };
+        fetchTripsData();
+    }, [deviceId, timeRange, page]);
 
+    useEffect(() => {
+        setTrips([]);
+    }, [timeRange]);
+
+    // 2. Fetch data when Device ID changes
+    useEffect(() => {
+        if (!deviceId) return;
+
+        const fetchWeekDateData = async () => {
+            try {
+                const weekdayDataRaw = await getTripsPerWeekday(deviceId);
                 const weekdayMap: Record<string, string> = {
                     MONDAY: "Mo", TUESDAY: "Di", WEDNESDAY: "Mi",
                     THURSDAY: "Do", FRIDAY: "Fr", SATURDAY: "Sa", SUNDAY: "So",
@@ -122,9 +145,8 @@ export default function Index() {
                 setIsFetchingMore(false);
             }
         };
-
-        fetchData();
-    }, [deviceId, timeRange, page]);
+        fetchWeekDateData();
+    }, [deviceId]);
 
     const handleLoadMore = () => {
         setPage((prev) => prev + 1);
@@ -170,7 +192,7 @@ export default function Index() {
                         trips={trips}
                         onLoadMore={handleLoadMore}
                         loading={isFetchingMore}
-                        hasMore={trips.length >= PAGE_SIZE}
+                        hasMore={hasMore}
                     />
                 </section>
             </main>
