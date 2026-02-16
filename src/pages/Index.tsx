@@ -26,6 +26,10 @@ export default function Index() {
     const [vehicleStats, setVehicleStats] = useState<VehicleStats>();
 
     useEffect(() => {
+        setTrips([]);
+    }, [timeRange]);
+
+    useEffect(() => {
         localStorage.setItem("trip_filter_range", timeRange);
         setPage(0);
     }, [timeRange]);
@@ -116,10 +120,6 @@ export default function Index() {
         };
         fetchTripsData();
     }, [deviceId, timeRange, page]);
-
-    useEffect(() => {
-        setTrips([]);
-    }, [timeRange]);
 
     // 2. Fetch data when Device ID changes
     useEffect(() => {
