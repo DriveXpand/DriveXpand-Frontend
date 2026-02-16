@@ -95,7 +95,7 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
     return (
         <header className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50 transition-all">
             <div className="container mx-auto py-3 px-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-0">
-                
+
                 {/* Top Row on Mobile: Logo + Filter */}
                 <div className="flex items-center justify-between w-full md:w-auto">
                     {/* Logo */}
@@ -154,10 +154,10 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                                 </Button>
                             );
                         })}
-                        
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             className="shrink-0 rounded-full"
                             onClick={() => setIsModalOpen(true)}
                         >
@@ -169,7 +169,7 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
 
                 {/* Desktop Filter Selection (Hidden on Mobile) */}
                 <div className="hidden md:block relative">
-                   <TimeRangeSelect selectedRange={selectedRange} onRangeChange={onRangeChange} />
+                    <TimeRangeSelect selectedRange={selectedRange} onRangeChange={onRangeChange} />
                 </div>
 
             </div>
