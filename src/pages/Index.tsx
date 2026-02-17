@@ -5,6 +5,7 @@ import { getTrips, getTripsPerWeekday, getAllDevices, getVehicleStats } from "@/
 import type { TripEntity, VehicleStats } from "@/types/api";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { LatestTrips } from "../components/LatestTrips";
+import { VehicleNotesSection } from "../components/VehicleNotesSection";
 import type { TimeRange } from "../types/ui";
 import VehicleStatsDashboard from "@/components/VehicleStats";
 
@@ -200,6 +201,15 @@ export default function Index() {
                         isLoading={loading && !vehicleStats}
                     />
                 </section>
+
+                <section className="mb-8">
+                    <p className="section-title mb-3">Fahrzeugnotizen</p>
+                    <VehicleNotesSection 
+                        deviceId={deviceId} 
+                        timeRange={timeRange} 
+                    />
+                </section>
+
 
                 {weekdayData.length > 0 && (
                     <section className="mb-8">
