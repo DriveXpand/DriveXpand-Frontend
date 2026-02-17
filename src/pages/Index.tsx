@@ -1,7 +1,6 @@
 import { Header } from "@/components/Header";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getAllDevices } from "@/lib/api";
 import type { TimeRange } from "@/types/ui";
 
 // Smart Components
@@ -12,7 +11,7 @@ import { VehicleNotesSection } from "@/components/VehicleNotesSection";
 
 export default function Index() {
     // --- Global State ---
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const deviceId = searchParams.get("device");
 
     const [timeRange, setTimeRange] = useState<TimeRange>(() => {
