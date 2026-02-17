@@ -41,9 +41,6 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                         finalVehicles = apiDevices.filter(device =>
                             savedIds.includes(device.deviceId)
                         );
-                    } else {
-                        // If no saved IDs but API has devices, show the first one
-                        finalVehicles = [apiDevices[0]];
                     }
                 }
 

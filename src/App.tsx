@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import History from "./pages/History";
 import { LoginPage } from "./pages/Login";
 import { RequireAuth } from "./components/RequireAuth"; // Import the new component
+import VehicleProfile from "./pages/VehicleProfile";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
                     <Route element={<RequireAuth />}>
                         <Route path="/" element={<Index />} />
                         <Route path="/history" element={<History />} />
+                        <Route path="/notes" element={<VehicleProfile />} />
                         {/* Add other protected pages here */}
                     </Route>
 

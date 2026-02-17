@@ -24,17 +24,6 @@ export default function Index() {
         localStorage.setItem("trip_filter_range", timeRange);
     }, [timeRange]);
 
-    // Ensure a device is selected on load
-    useEffect(() => {
-        if (!deviceId) {
-            getAllDevices().then(devices => {
-                if (devices?.[0]) {
-                    setSearchParams({ device: devices[0].deviceId }, { replace: true });
-                }
-            });
-        }
-    }, [deviceId, setSearchParams]);
-
     // --- Render ---
     return (
         <div className="min-h-screen bg-background">

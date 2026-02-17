@@ -4,6 +4,7 @@ import type { VehicleNotes } from "@/types/api";
 import type { TimeRange } from "@/types/ui";
 import { VehicleNotesList } from "./VehicleNotesList";
 import { calculateDateRange } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface VehicleNotesSectionProps {
     deviceId: string | null;
@@ -12,6 +13,7 @@ interface VehicleNotesSectionProps {
 
 export function VehicleNotesSection({ deviceId, timeRange }: VehicleNotesSectionProps) {
     const PAGE_SIZE = 4;
+    const navigate = useNavigate();
 
     const [notes, setNotes] = useState<VehicleNotes[]>([]);
     const [loading, setLoading] = useState(true);
@@ -88,7 +90,16 @@ export function VehicleNotesSection({ deviceId, timeRange }: VehicleNotesSection
 
     return (
         <section className="space-y-4 mb-8">
+            <div className="flex items-center justify-between">
             <p className="section-title text-lg font-semibold">Fahrzeugnotizen</p>
+                <button
+                    onClick={() => deviceId && navigate(`/notes?device=${deviceId}`)}
+                    className="text-sm text-primary hover:underline"
+                >
+                    Alle anzeigen
+                </button>
+            </div>
+
             <VehicleNotesList
                 notes={notes}
                 onLoadMore={handleLoadMore}
