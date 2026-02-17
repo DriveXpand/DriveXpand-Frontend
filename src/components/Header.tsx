@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Car, ChevronDown, PlusCircleIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DeviceEntity } from '../types/api';
@@ -14,7 +14,6 @@ interface HeaderProps {
 
 const STORAGE_KEY = "drivexpand_vehicles";
 
-// Helper to add unique vehicles
 function addVehicle(prevVehicles: DeviceEntity[], newVehicle: DeviceEntity) {
     const exists = prevVehicles.some(v => v.deviceId === newVehicle.deviceId);
     if (exists) return prevVehicles;
@@ -35,19 +34,30 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                 const savedIds: string[] = savedRaw ? JSON.parse(savedRaw) : [];
                 const apiDevices = await getAllDevices();
 
-                if (!apiDevices || apiDevices.length === 0) return;
+                let finalVehicles: DeviceEntity[] = [];
 
-                if (savedIds.length > 0) {
-                    const restoredVehicles = apiDevices.filter(device =>
-                        savedIds.includes(device.deviceId)
-                    );
-                    setVehicles(restoredVehicles);
-                } else {
-                    setVehicles([apiDevices[0]]);
+                if (apiDevices && apiDevices.length > 0) {
+                    if (savedIds.length > 0) {
+                        finalVehicles = apiDevices.filter(device =>
+                            savedIds.includes(device.deviceId)
+                        );
+                    } else {
+                        // If no saved IDs but API has devices, show the first one
+                        finalVehicles = [apiDevices[0]];
+                    }
+                }
+
+                setVehicles(finalVehicles);
+
+                // --- NEW LOGIC: Open Modal if list is empty ---
+                if (finalVehicles.length === 0) {
+                    setIsModalOpen(true);
                 }
 
             } catch (error) {
                 console.error("Failed to sync vehicles:", error);
+                // On error, if we have no vehicles, still open modal so user can try adding one manually
+                setIsModalOpen(true);
             }
         };
         hydrateVehicles();
@@ -88,6 +98,8 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                     prev.delete("device");
                     return prev;
                 });
+                // Optional: Re-open modal if they delete the last one
+                // setIsModalOpen(true); 
             }
         }
     };
@@ -96,21 +108,17 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
         <header className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50 transition-all">
             <div className="container mx-auto py-3 px-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-0">
 
-                {/* Top Row on Mobile: Logo + Filter */}
                 <div className="flex items-center justify-between w-full md:w-auto">
-                    {/* Logo */}
                     <div className="flex items-center gap-2 shrink-0">
                         <Car className="w-5 h-5 text-primary" />
                         <span className="text-lg font-semibold tracking-tight">DriveXpand</span>
                     </div>
 
-                    {/* Filter Selection - Moved here on mobile for easier access */}
                     <div className="relative md:hidden">
                         <TimeRangeSelect selectedRange={selectedRange} onRangeChange={onRangeChange} />
                     </div>
                 </div>
 
-                {/* Middle Row: Vehicle List (Scrollable on Mobile) */}
                 <div className="w-full md:flex-1 md:px-6 overflow-hidden">
                     <div className="flex gap-2 items-center overflow-x-auto no-scrollbar pb-1 md:pb-0 md:justify-center mask-fade-sides">
                         {vehicles.map((vehicle) => {
@@ -130,8 +138,6 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                                     <span className="truncate max-w-[120px] md:max-w-[200px]">
                                         {vehicle.name}
                                     </span>
-
-                                    {/* Delete Button - Optimized for Touch */}
                                     <div
                                         role="button"
                                         onClick={(e) => handleRemoveVehicle(e, vehicle.deviceId)}
@@ -139,12 +145,8 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                                             absolute right-1 top-1/2 -translate-y-1/2 
                                             p-1 rounded-full 
                                             transition-all duration-200
-                                            
-                                            /* Desktop: Hover behavior */
                                             md:opacity-0 md:group-hover:opacity-100
                                             md:hover:bg-white/20
-                                            
-                                            /* Mobile: Always visible if active, or slight opacity if inactive */
                                             opacity-100
                                         `}
                                         title="Remove vehicle"
@@ -167,7 +169,6 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
                     </div>
                 </div>
 
-                {/* Desktop Filter Selection (Hidden on Mobile) */}
                 <div className="hidden md:block relative">
                     <TimeRangeSelect selectedRange={selectedRange} onRangeChange={onRangeChange} />
                 </div>
@@ -178,7 +179,6 @@ export function Header({ selectedRange, onRangeChange }: HeaderProps) {
     );
 }
 
-// Extracted Component to avoid code duplication between mobile/desktop views
 function TimeRangeSelect({ selectedRange, onRangeChange }: HeaderProps) {
     return (
         <div className="relative">

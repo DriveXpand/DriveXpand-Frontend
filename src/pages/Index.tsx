@@ -35,27 +35,34 @@ export default function Index() {
         }
     }, [deviceId, setSearchParams]);
 
-    if (!deviceId) return <div className="p-10 text-center">Loading Device...</div>;
-
     // --- Render ---
     return (
         <div className="min-h-screen bg-background">
+            {/* Header must render even if no deviceId exists, so it can pop the Modal */}
             <Header selectedRange={timeRange} onRangeChange={setTimeRange} />
 
             <main className="container mx-auto py-6">
+                {!deviceId ? (
+                    // Show a specific "Empty State" or Loading message here
+                    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                        <p>No vehicle selected.</p>
+                        <p className="text-sm">Please select or add a vehicle above.</p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Vehicle Stats */}
+                        <VehicleStatsWrapper deviceId={deviceId} />
 
-                {/* Vehicle Stats */}
-                <VehicleStatsWrapper deviceId={deviceId} />
+                        {/* Weekday Chart */}
+                        <WeekdayChartWrapper deviceId={deviceId} />
 
-                {/* Weekday Chart */}
-                <WeekdayChartWrapper deviceId={deviceId} />
+                        {/* Latest Trips List */}
+                        <LatestTrips deviceId={deviceId} timeRange={timeRange} />
 
-                {/* Latest Trips List */}
-                <LatestTrips deviceId={deviceId} timeRange={timeRange} />
-
-                {/* Notes */}
-                <VehicleNotesSection deviceId={deviceId} timeRange={timeRange} />
-
+                        {/* Notes */}
+                        <VehicleNotesSection deviceId={deviceId} timeRange={timeRange} />
+                    </>
+                )}
             </main>
         </div>
     );
