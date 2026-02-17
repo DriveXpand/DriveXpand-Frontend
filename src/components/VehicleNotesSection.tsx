@@ -3,6 +3,7 @@ import { getVehicleNotes } from "@/lib/api";
 import type { VehicleNotes } from "@/types/api";
 import type { TimeRange } from "@/types/ui";
 import { VehicleNotesList } from "./VehicleNotesList";
+import { calculateDateRange } from "@/lib/utils";
 
 interface VehicleNotesSectionProps {
     deviceId: string | null;
@@ -38,26 +39,7 @@ export function VehicleNotesSection({ deviceId, timeRange }: VehicleNotesSection
             }
 
             try {
-                const now = new Date();
-                let since: Date | undefined;
-                let end: Date | undefined;
-
-                // --- Date Logic
-                if (timeRange === "this_month") {
-                    since = new Date(now.getFullYear(), now.getMonth(), 1);
-                } else if (timeRange === "last_month") {
-                    since = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                    end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-                } else if (timeRange === "last_3_months") {
-                    since = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-                } else if (timeRange === "last_6_months") {
-                    since = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-                } else if (timeRange === "this_year") {
-                    since = new Date(now.getFullYear(), 0, 1);
-                } else if (timeRange === "last_year") {
-                    since = new Date(now.getFullYear() - 1, 0, 1);
-                    end = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
-                }
+                const { since, end } = calculateDateRange(timeRange);
 
                 const data = await getVehicleNotes(
                     deviceId,
@@ -105,11 +87,14 @@ export function VehicleNotesSection({ deviceId, timeRange }: VehicleNotesSection
     }
 
     return (
-        <VehicleNotesList
-            notes={notes}
-            onLoadMore={handleLoadMore}
-            loading={isFetchingMore}
-            hasMore={hasMore}
-        />
+        <section className="space-y-4 mb-8">
+            <p className="section-title text-lg font-semibold">Fahrzeugnotizen</p>
+            <VehicleNotesList
+                notes={notes}
+                onLoadMore={handleLoadMore}
+                loading={isFetchingMore}
+                hasMore={hasMore}
+            />
+        </section>
     );
 }

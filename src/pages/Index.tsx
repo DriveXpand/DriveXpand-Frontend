@@ -1,241 +1,61 @@
-import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
-import { DrivingTimeChart } from "@/components/DrivingTimeChart";
-import { getTrips, getTripsPerWeekday, getAllDevices, getVehicleStats } from "@/lib/api";
-import type { TripEntity, VehicleStats } from "@/types/api";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { LatestTrips } from "../components/LatestTrips";
-import { VehicleNotesSection } from "../components/VehicleNotesSection";
-import type { TimeRange } from "../types/ui";
-import VehicleStatsDashboard from "@/components/VehicleStats";
+import { useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getAllDevices } from "@/lib/api";
+import type { TimeRange } from "@/types/ui";
+
+// Smart Components
+import { LatestTrips } from "@/components/LatestTrips";
+import { WeekdayChartWrapper } from "@/components/WeekdayChartWrapper";
+import { VehicleStatsWrapper } from "@/components/VehicleStatsWrapper";
+import { VehicleNotesSection } from "@/components/VehicleNotesSection";
 
 export default function Index() {
-    const PAGE_SIZE = 20;
-    const [trips, setTrips] = useState<TripEntity[]>([]);
-    const [weekdayData, setWeekdayData] = useState<Array<{ day: string; value: number }>>([]);
-
-    const [loading, setLoading] = useState(true);
-    const [isFetchingMore, setIsFetchingMore] = useState(false);
-    const [page, setPage] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
-
-    const [timeRange, setTimeRange] = useState<TimeRange>(() => {
-        const saved = localStorage.getItem("trip_filter_range");
-        return (saved as TimeRange) || "this_month";
-    });
-
-    const [vehicleStats, setVehicleStats] = useState<VehicleStats>();
-
+    // --- Global State ---
     const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
     const deviceId = searchParams.get("device");
 
-    // Reset page and clear data when Device OR TimeRange changes
+    const [timeRange, setTimeRange] = useState<TimeRange>(() => {
+        return (localStorage.getItem("trip_filter_range") as TimeRange) || "this_month";
+    });
+
+    // --- Effects (Only Global App Logic) ---
     useEffect(() => {
         localStorage.setItem("trip_filter_range", timeRange);
-        setPage(0);
-        setHasMore(true);
-        setTrips([]); // Clear immediately so user sees loading state
-    }, [timeRange, deviceId]);
+    }, [timeRange]);
 
-    // 1. Ensure the device ID is set in the URL
+    // Ensure a device is selected on load
     useEffect(() => {
         if (!deviceId) {
-            const initDefaultDevice = async () => {
-                try {
-                    const result = await getAllDevices();
-                    if (result && result.length > 0) {
-                        setSearchParams(
-                            (prev) => {
-                                prev.set("device", result[0].deviceId);
-                                return prev;
-                            },
-                            { replace: true }
-                        );
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch default device:", error);
-                    setLoading(false);
+            getAllDevices().then(devices => {
+                if (devices?.[0]) {
+                    setSearchParams({ device: devices[0].deviceId }, { replace: true });
                 }
-            };
-            initDefaultDevice();
+            });
         }
     }, [deviceId, setSearchParams]);
 
-    // 2. Fetch data when Device ID, TimeRange, OR PageSize changes
-    useEffect(() => {
-        if (!deviceId) return;
+    if (!deviceId) return <div className="p-10 text-center">Loading Device...</div>;
 
-        const fetchTripsData = async () => {
-            // Determine if this is a fresh load or a "load more" action
-            if (page === 0) {
-                setLoading(true);
-            } else {
-                setIsFetchingMore(true);
-            }
-
-            try {
-                const now = new Date();
-                let since: Date | undefined;
-                let end: Date | undefined;
-
-                if (timeRange === "this_month") {
-                    since = new Date(now.getFullYear(), now.getMonth(), 1);
-                } else if (timeRange === "last_month") {
-                    since = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                    end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-                } else if (timeRange === "last_3_months") {
-                    since = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-                } else if (timeRange === "last_6_months") {
-                    since = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-                } else if (timeRange === "this_year") {
-                    since = new Date(now.getFullYear(), 0, 1);
-                } else if (timeRange === "last_year") {
-                    since = new Date(now.getFullYear() - 1, 0, 1);
-                    end = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
-                }
-
-                const tripsData = await getTrips(
-                    deviceId,
-                    since,
-                    end,
-                    page,
-                    PAGE_SIZE);
-
-                const tripsArray = Object.values(tripsData);
-
-                if (tripsArray.length < PAGE_SIZE) {
-                    setHasMore(false);
-                }
-
-                // Only merge if we are not on the first page
-                setTrips(prev => {
-                    const sortedNew = tripsArray.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-
-                    if (page === 0) {
-                        return sortedNew;
-                    }
-                    return [...prev, ...sortedNew];
-                });
-
-            } catch (error) {
-                console.error("Failed to fetch data:", error);
-            } finally {
-                setLoading(false);
-                setIsFetchingMore(false);
-            }
-        };
-
-        fetchTripsData();
-    }, [deviceId, timeRange, page]);
-
-    // 3. Fetch Vehicle Stats
-    useEffect(() => {
-        if (!deviceId) return;
-
-        const fetchVehicleData = async () => {
-            try {
-                const fetched = await getVehicleStats(deviceId);
-                setVehicleStats(fetched);
-            } catch (error) {
-                console.error("Failed to fetch vehicle stats:", error);
-            }
-        }
-
-        const fetchWeekDateData = async () => {
-            try {
-                const weekdayDataRaw = await getTripsPerWeekday(deviceId);
-                const weekdayMap: Record<string, string> = {
-                    MONDAY: "Mo", TUESDAY: "Di", WEDNESDAY: "Mi",
-                    THURSDAY: "Do", FRIDAY: "Fr", SATURDAY: "Sa", SUNDAY: "So",
-                };
-
-                const weekdayDataFormatted = Object.entries(weekdayDataRaw).map(
-                    ([day, value]) => ({
-                        day: weekdayMap[day] || day,
-                        value: value as number,
-                    })
-                );
-                setWeekdayData(weekdayDataFormatted);
-
-            } catch (error) {
-                console.error("Failed to fetch weekday data:", error);
-            }
-        };
-
-        // Reset these stats visually before fetching
-        setVehicleStats(undefined);
-        setWeekdayData([]);
-
-        fetchVehicleData();
-        fetchWeekDateData();
-    }, [deviceId]);
-
-    const handleLoadMore = () => {
-        setPage((prev) => prev + 1);
-    };
-
-    const handleShowAll = () => {
-        if (deviceId) {
-            navigate(`/history?device=${deviceId}`);
-        }
-    };
-
-    // Improved loading check
-    if (loading && trips.length === 0) {
-        return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-    }
-
+    // --- Render ---
     return (
         <div className="min-h-screen bg-background">
-            <Header
-                selectedRange={timeRange}
-                onRangeChange={setTimeRange}
-            />
+            <Header selectedRange={timeRange} onRangeChange={setTimeRange} />
 
             <main className="container mx-auto py-6">
 
-                <section className="mb-8">
-                    <VehicleStatsDashboard
-                        stats={vehicleStats}
-                        isLoading={loading && !vehicleStats}
-                    />
-                </section>
+                {/* Vehicle Stats */}
+                <VehicleStatsWrapper deviceId={deviceId} />
 
-                <section className="mb-8">
-                    <p className="section-title mb-3">Fahrzeugnotizen</p>
-                    <VehicleNotesSection 
-                        deviceId={deviceId} 
-                        timeRange={timeRange} 
-                    />
-                </section>
+                {/* Weekday Chart */}
+                <WeekdayChartWrapper deviceId={deviceId} />
 
+                {/* Latest Trips List */}
+                <LatestTrips deviceId={deviceId} timeRange={timeRange} />
 
-                {weekdayData.length > 0 && (
-                    <section className="mb-8">
-                        <p className="section-title mb-3">Wann fährst du?</p>
-                        <DrivingTimeChart data={weekdayData} title="Wochentage" />
-                    </section>
-                )}
+                {/* Notes */}
+                <VehicleNotesSection deviceId={deviceId} timeRange={timeRange} />
 
-                <section>
-                    <div className="flex items-center justify-between mb-3">
-                        <p className="section-title">Letzte Fahrten</p>
-                        <button
-                            onClick={handleShowAll}
-                            className="text-sm text-primary hover:underline"
-                        >
-                            Alle anzeigen
-                        </button>
-                    </div>
-
-                    <LatestTrips
-                        trips={trips}
-                        onLoadMore={handleLoadMore}
-                        loading={isFetchingMore}
-                        hasMore={hasMore}
-                    />
-                </section>
             </main>
         </div>
     );
