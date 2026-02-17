@@ -31,7 +31,7 @@ export default function VehicleProfile() {
                     getVehicleNotes(deviceId),
                     getVehicleImage(deviceId)
                 ]);
-                
+
                 // Sort notes by date descending
                 const sorted = fetchedNotes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 setNotes(sorted);
@@ -74,7 +74,7 @@ export default function VehicleProfile() {
 
     const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!deviceId || !event.target.files || event.target.files.length === 0) return;
-        
+
         const file = event.target.files[0];
         try {
             // Optimistic update (optional) or wait for server
@@ -91,7 +91,7 @@ export default function VehicleProfile() {
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto py-6 max-w-2xl">
-                
+
                 {/* Header */}
                 <div className="flex items-center mb-6 px-4 md:px-0">
                     <button onClick={() => navigate(-1)} className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -101,13 +101,13 @@ export default function VehicleProfile() {
                 </div>
 
                 <div className="space-y-8 px-4 md:px-0">
-                    
+
                     {/* --- Image Section --- */}
                     <div className="relative w-full aspect-video md:aspect-[21/9] bg-muted rounded-xl overflow-hidden shadow-sm border group">
                         {vehicleImage ? (
-                            <img 
-                                src={vehicleImage} 
-                                alt="Vehicle" 
+                            <img
+                                src={vehicleImage}
+                                alt="Vehicle"
                                 className="w-full h-full object-cover"
                             />
                         ) : (
@@ -119,18 +119,18 @@ export default function VehicleProfile() {
 
                         {/* Edit/Upload Button Overlay */}
                         <div className="absolute bottom-3 right-3">
-                            <button 
+                            <button
                                 onClick={() => fileInputRef.current?.click()}
                                 className="flex items-center gap-2 bg-background/80 hover:bg-background text-foreground backdrop-blur-sm border px-3 py-2 rounded-lg shadow-sm transition-all text-sm font-medium"
                             >
                                 <Pencil className="w-4 h-4" />
                                 <span>Bearbeiten</span>
                             </button>
-                            <input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                onChange={handleImageUpload} 
-                                className="hidden" 
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImageUpload}
+                                className="hidden"
                                 accept="image/png, image/jpeg, image/webp"
                             />
                         </div>
@@ -145,7 +145,7 @@ export default function VehicleProfile() {
                                     {notes.length}
                                 </span>
                             </h2>
-                            <button 
+                            <button
                                 onClick={() => setIsAddModalOpen(true)}
                                 className="flex items-center gap-1.5 text-sm bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-2 rounded-md transition-colors shadow-sm"
                             >
@@ -155,7 +155,7 @@ export default function VehicleProfile() {
                         </div>
 
                         {loading ? (
-                             <div className="space-y-3">
+                            <div className="space-y-3">
                                 {[1, 2, 3].map((i) => (
                                     <div key={i} className="h-24 bg-muted/50 animate-pulse rounded-lg" />
                                 ))}
@@ -170,9 +170,11 @@ export default function VehicleProfile() {
                         ) : (
                             <div className="space-y-3">
                                 {notes.map((note) => (
-                                    <VehicleNoteCard 
-                                        key={note.id} 
-                                        note={note} 
+                                    <VehicleNoteCard
+                                        key={note.id}
+                                        note={note}
+                                        onDelete={() => handleDeleteNote(note.id)}
+                                        isDeleting={deletingId === note.id}
                                     />
                                 ))}
                             </div>
@@ -182,10 +184,10 @@ export default function VehicleProfile() {
             </div>
 
             {/* Modals */}
-            <AddNoteModal 
-                isOpen={isAddModalOpen} 
-                onClose={() => setIsAddModalOpen(false)} 
-                onSubmit={handleAddNote} 
+            <AddNoteModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onSubmit={handleAddNote}
             />
         </div>
     );
