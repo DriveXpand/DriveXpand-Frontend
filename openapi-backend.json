@@ -6,7 +6,7 @@
     },
     "servers": [
         {
-            "url": "http://localhost:8080",
+            "url": "http://drivebackend.rehr.cloud",
             "description": "Generated server url"
         }
     ],
@@ -161,6 +161,56 @@
                 }
             }
         },
+        "/api/auth/logout": {
+            "post": {
+                "tags": [
+                    "auth-controller"
+                ],
+                "operationId": "logout",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "tags": [
+                    "auth-controller"
+                ],
+                "operationId": "login",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/trips/{tripId}": {
             "get": {
                 "tags": [
@@ -196,10 +246,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/TelemetryEntity"
-                                    }
+                                    "$ref": "#/components/schemas/TripDetailsResponse"
                                 }
                             }
                         }
@@ -299,17 +346,6 @@
                         }
                     },
                     {
-                        "name": "timeBetweenTripsInSeconds",
-                        "in": "query",
-                        "description": "Min seconds between trips",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int32",
-                            "default": 1800
-                        }
-                    },
-                    {
                         "name": "page",
                         "in": "query",
                         "description": "Page 0 based (0 is first page)",
@@ -373,17 +409,6 @@
                         "schema": {
                             "type": "string",
                             "format": "date-time"
-                        }
-                    },
-                    {
-                        "name": "timeBetweenTripsInSeconds",
-                        "in": "query",
-                        "description": "Min seconds between trips",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int32",
-                            "default": 1800
                         }
                     }
                 ],
@@ -450,8 +475,7 @@
                         "required": false,
                         "schema": {
                             "type": "integer",
-                            "format": "int32",
-                            "default": 0
+                            "format": "int32"
                         }
                     },
                     {
@@ -461,8 +485,7 @@
                         "required": false,
                         "schema": {
                             "type": "integer",
-                            "format": "int32",
-                            "default": 20
+                            "format": "int32"
                         }
                     }
                 ],
@@ -573,7 +596,7 @@
                         "name": "since",
                         "in": "query",
                         "description": "Start time",
-                        "required": true,
+                        "required": false,
                         "schema": {
                             "type": "string",
                             "format": "date-time"
@@ -583,21 +606,10 @@
                         "name": "end",
                         "in": "query",
                         "description": "End time",
-                        "required": true,
+                        "required": false,
                         "schema": {
                             "type": "string",
                             "format": "date-time"
-                        }
-                    },
-                    {
-                        "name": "timeBetweenTripsInSeconds",
-                        "in": "query",
-                        "description": "Min seconds between trips",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "format": "int32",
-                            "default": 1800
                         }
                     }
                 ],
@@ -611,6 +623,26 @@
                                     "additionalProperties": {
                                         "type": "object"
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/me": {
+            "get": {
+                "tags": [
+                    "auth-controller"
+                ],
+                "operationId": "getCurrentUser",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserInfo"
                                 }
                             }
                         }
@@ -706,6 +738,17 @@
                     }
                 }
             },
+            "LoginRequest": {
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                }
+            },
             "TripUpdateRequest": {
                 "type": "object",
                 "properties": {
@@ -740,6 +783,10 @@
                     },
                     "endLocation": {
                         "type": "string"
+                    },
+                    "trip_distance_km": {
+                        "type": "number",
+                        "format": "float"
                     }
                 }
             },
@@ -784,41 +831,10 @@
                                 "type": "object"
                             }
                         }
-                    }
-                }
-            },
-            "TelemetryEntity": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
                     },
-                    "device": {
-                        "$ref": "#/components/schemas/DeviceEntity"
-                    },
-                    "trip": {
-                        "$ref": "#/components/schemas/TripEntity"
-                    },
-                    "startTime": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "endTime": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "timed_data": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "object"
-                        }
-                    },
-                    "aggregated_data": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "object"
-                        }
+                    "trip_distance_km": {
+                        "type": "number",
+                        "format": "float"
                     }
                 }
             },
@@ -844,6 +860,25 @@
                         "type": "string"
                     },
                     "endLocation": {
+                        "type": "string"
+                    },
+                    "trip_distance_km": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "telemetry_count": {
+                        "type": "integer",
+                        "format": "int32"
+                    }
+                }
+            },
+            "UserInfo": {
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "type": "string"
+                    },
+                    "message": {
                         "type": "string"
                     }
                 }
