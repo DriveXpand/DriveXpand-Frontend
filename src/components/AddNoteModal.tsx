@@ -4,7 +4,7 @@ import { X, Save } from "lucide-react";
 interface AddNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (note: { date: string; note: string; cost?: number }) => Promise<void>;
+  onSubmit: (note: { noteDate: string; noteText: string; notePrice?: number }) => Promise<void>;
 }
 
 export function AddNoteModal({ isOpen, onClose, onSubmit }: AddNoteModalProps) {
@@ -19,9 +19,9 @@ export function AddNoteModal({ isOpen, onClose, onSubmit }: AddNoteModalProps) {
     e.preventDefault();
     setLoading(true);
     await onSubmit({
-      date: new Date(date).toISOString(),
-      note: noteText,
-      cost: cost ? parseFloat(cost) : undefined,
+      noteDate: new Date(date).toISOString(),
+      noteText: noteText,
+      notePrice: cost ? parseFloat(cost) : undefined,
     });
     setLoading(false);
     setNoteText("");

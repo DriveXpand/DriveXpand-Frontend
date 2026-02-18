@@ -182,19 +182,25 @@ export async function addVehiclesNotes(
   deviceId: string,
   note: Omit<VehicleNotes, "id">
 ): Promise<VehicleNotes> {
-  return apiCall<VehicleNotes>(`/devices/${deviceId}/notes`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ note }),
-    })
+  // Explicitly extract only the required fields
+  let { noteText, noteDate, notePrice } = note;
+  notePrice = notePrice ? notePrice : 0;
+  return apiCall<VehicleNotes>(`/devices/${deviceId}/notes`, {
+    method: "POST",
+    body: JSON.stringify({
+      noteText,
+      noteDate,
+      notePrice,
+    }),
+  });
 }
 
 export async function getVehicleNotes(
   deviceId: string,
   since?: Date,
   end?: Date,
-  page: number,
-  pageSize: number,
+  page?: number,
+  pageSize?: number,
 ): Promise<VehicleNotes[]> {
 
   //TODO: since, end

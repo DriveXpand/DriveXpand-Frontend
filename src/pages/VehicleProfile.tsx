@@ -33,7 +33,7 @@ export default function VehicleProfile() {
                 ]);
 
                 // Sort notes by date descending
-                const sorted = fetchedNotes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                const sorted = fetchedNotes.sort((a, b) => new Date(b.noteDate).getTime() - new Date(a.noteDate).getTime());
                 setNotes(sorted);
                 setVehicleImage(fetchedImage);
             } catch (error) {
@@ -47,11 +47,11 @@ export default function VehicleProfile() {
     }, [deviceId]);
 
     // 2. Handlers
-    const handleAddNote = async (data: { date: string; note: string; cost?: number }) => {
+    const handleAddNote = async (data: { noteDate: string; noteText: string; notePrice?: number }) => {
         if (!deviceId) return;
         try {
             const newNote = await addVehiclesNotes(deviceId, data);
-            setNotes((prev) => [newNote, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            setNotes((prev) => [newNote, ...prev].sort((a, b) => new Date(b.noteDate).getTime() - new Date(a.noteDate).getTime()));
         } catch (error) {
             console.error("Failed to add note", error);
         }
