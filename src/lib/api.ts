@@ -127,6 +127,15 @@ export async function getTripsTelemetry(
   return apiCall<Record<string, TripDetailsResponse>>(`/trips?${params}`);
 }
 
+export async function getTripDetails(
+  deviceId: string,
+  tripId: string
+): Promise<TripDetailsResponse> {
+  const params = new URLSearchParams({ deviceId });
+
+  return apiCall<TripDetailsResponse>(`/trips/${tripId}?${params}`);
+}
+
 export async function getTripsPerWeekday(
   deviceId: string,
   since?: Date,
