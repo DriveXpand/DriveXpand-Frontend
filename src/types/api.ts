@@ -64,8 +64,8 @@ export interface VehicleStats {
 
 export interface VehicleNotes {
   id: string
-  date: string, // date-time,
-  note: string,
-  cost?: number,
+  noteDate: string, // date-time,
+  noteText: string,
+  notePrice?: number,
 }
 

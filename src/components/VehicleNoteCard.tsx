@@ -10,9 +10,8 @@ interface VehicleNoteCardProps {
 }
 
 export function VehicleNoteCard({ note, onDelete, isDeleting = false }: VehicleNoteCardProps) {
-    const dateObj = new Date(note.date);
+    const dateObj = new Date(note.noteDate);
 
-    // Format date: dd.mm.yyyy
     const formattedDate = new Intl.DateTimeFormat("de-DE", {
         day: "2-digit",
         month: "2-digit",
@@ -20,11 +19,11 @@ export function VehicleNoteCard({ note, onDelete, isDeleting = false }: VehicleN
     }).format(dateObj);
 
     // Format cost: 1.234,56 €
-    const formattedCost = note.cost
+    const formattedCost = note.notePrice
         ? new Intl.NumberFormat("de-DE", {
             style: "currency",
             currency: "EUR",
-        }).format(note.cost)
+        }).format(note.notePrice)
         : null;
 
     return (
@@ -40,7 +39,7 @@ export function VehicleNoteCard({ note, onDelete, isDeleting = false }: VehicleN
                     <div className="flex items-start gap-2">
                         <StickyNote className="w-4 h-4 mt-0.5 text-primary/70 shrink-0" />
                         <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                            {note.note}
+                            {note.noteText}
                         </p>
                     </div>
                 </div>
