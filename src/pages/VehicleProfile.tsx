@@ -20,6 +20,16 @@ export default function VehicleProfile() {
     // Ref for hidden file input
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Cleanup Object URLs to prevent memory leaks when the component unmounts
+    // or when the image URL changes.
+    useEffect(() => {
+        return () => {
+            if (vehicleImage && vehicleImage.startsWith("blob:")) {
+                URL.revokeObjectURL(vehicleImage);
+            }
+        };
+    }, [vehicleImage]);
+
     // 1. Fetch Data
     useEffect(() => {
         if (!deviceId) return;
@@ -59,7 +69,7 @@ export default function VehicleProfile() {
 
     const handleDeleteNote = async (id: string) => {
         if (!deviceId) return;
-        if (!confirm("Möchten Sie diese Notiz wirklich löschen?")) return;
+        if (!window.confirm("Möchten Sie diese Notiz wirklich löschen?")) return;
 
         setDeletingId(id);
         try {
@@ -76,13 +86,27 @@ export default function VehicleProfile() {
         if (!deviceId || !event.target.files || event.target.files.length === 0) return;
 
         const file = event.target.files[0];
+        const previousImage = vehicleImage;
+
+        // Optimistic Update: Create a local URL so the UI updates instantly
+        const localImageUrl = URL.createObjectURL(file);
+        setVehicleImage(localImageUrl);
+
         try {
-            // Optimistic update (optional) or wait for server
-            const newImageUrl = await uploadVehicleImage(deviceId, file);
-            setVehicleImage(newImageUrl);
+            // Perform the upload
+            await uploadVehicleImage(deviceId, file);
         } catch (error) {
             console.error("Failed to upload image", error);
             alert("Bild konnte nicht hochgeladen werden.");
+
+            // Revert to the old image if the upload fails
+            setVehicleImage(previousImage);
+            URL.revokeObjectURL(localImageUrl);
+        } finally {
+            // Reset the input value so the user can select the same file again if needed
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
         }
     };
 
@@ -131,7 +155,7 @@ export default function VehicleProfile() {
                                 ref={fileInputRef}
                                 onChange={handleImageUpload}
                                 className="hidden"
-                                accept="image/png, image/jpeg, image/webp"
+                                accept="image/png, image/jpeg, image/gif, image/webp"
                             />
                         </div>
                     </div>

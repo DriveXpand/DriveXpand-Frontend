@@ -207,25 +207,51 @@ export async function getVehicleNotes(
 
   const params = new URLSearchParams({ deviceId });
 
-  if (page) params.append("page", page.toString());
+  if (page != undefined) params.append("page", page.toString());
   if (pageSize) params.append("pageSize", pageSize.toString());
 
   return apiCall<VehicleNotes[]>(`/devices/${deviceId}/notes?${params}`);
 }
 
 export async function uploadVehicleImage(
-  deviceId: string,
-  file: File
+    deviceId: string,
+    file: File
 ): Promise<void> {
+    const formData = new FormData();
+    formData.append("file", file);
 
-  return apiCall<void>(`/devices/${deviceId}/photo`, {
-    method: "PATCH",
-    body: JSON.stringify({ file }),
-  })
+    const response = await fetch(`/api/devices/${deviceId}/photo`, {
+        method: "PATCH",
+        // Note: Do NOT set the 'Content-Type' header here. 
+        // fetch automatically sets it to 'multipart/form-data' with the correct boundary.
+        body: formData,
+        // headers: { Authorization: `Bearer ${token}` } // Add if needed
+    });
+
+    if (!response.ok) {
+        throw new Error(`Upload failed with status: ${response.status}`);
+    }
 }
 
 export async function getVehicleImage(
-  deviceId: string
+    deviceId: string
 ): Promise<string | null> {
-  return apiCall<string>(`/devices/${deviceId}/photo`)
+    try {
+        const response = await fetch(`/api/devices/${deviceId}/photo`);
+        
+        if (response.status === 404) {
+            return null; // No photo exists yet
+        }
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.status}`);
+        }
+
+        // Convert the binary response into a Blob, then into a local Object URL
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+    } catch (error) {
+        console.error("Error fetching vehicle image:", error);
+        return null;
+    }
 }
