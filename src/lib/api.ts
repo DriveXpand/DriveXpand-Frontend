@@ -106,7 +106,7 @@ export async function getTrips(
   const params = new URLSearchParams({ deviceId });
   if (since) params.append("since", since.toISOString());
   if (end) params.append("end", end.toISOString());
-  if (page) params.append("page", page.toString());
+  if (page != undefined) params.append("page", page.toString());
   if (pageSize) params.append("pageSize", pageSize.toString());
 
   return apiCall<Record<string, TripEntity>>(`/trips/list?${params}`);
