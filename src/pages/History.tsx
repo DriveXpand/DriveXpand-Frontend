@@ -131,10 +131,8 @@ export default function History() {
                                         <div className="p-4 border-t animate-in slide-in-from-top-2 duration-200">
                                             {/* Reuse existing list component, but hide 'Load More' */}
                                             <LatestTrips
-                                                trips={monthTrips}
-                                                loading={false}
-                                                hasMore={false}
-                                                onLoadMore={() => { }}
+                                                deviceId={deviceId}
+                                                tripsData={monthTrips}
                                             />
                                         </div>
                                     )}

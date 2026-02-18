@@ -9,56 +9,64 @@ import { calculateDateRange } from "@/lib/utils";
 
 interface LatestTripsProps {
     deviceId: string | null;
-    timeRange: TimeRange;
+    timeRange?: TimeRange;
+    tripsData?: TripEntity[],
 }
 
-export function LatestTrips({ deviceId, timeRange }: LatestTripsProps) {
+export function LatestTrips({ deviceId, timeRange, tripsData }: LatestTripsProps) {
     const navigate = useNavigate();
     const PAGE_SIZE = 5;
 
-    const [trips, setTrips] = useState<TripEntity[]>([]);
+    const [trips, setTrips] = useState<TripEntity[]>(tripsData ?? []);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
+    const [hasMore, setHasMore] = useState(tripsData == undefined);
 
-    // Reset state when filters change
-    useEffect(() => {
-        setPage(0);
-        setHasMore(true);
-        setTrips([]);
-    }, [deviceId, timeRange]);
 
-    useEffect(() => {
-        if (!deviceId) return;
+    if (tripsData == undefined) {
 
-        const fetchTrips = async () => {
-            setLoading(true);
-            try {
-                const { since, end } = calculateDateRange(timeRange);
+        // Reset state when filters change
+        useEffect(() => {
+            setPage(0);
+            setHasMore(true);
+            setTrips([]);
+        }, [deviceId, timeRange]);
 
-                const tripsData = await getTrips(deviceId, since, end, page, PAGE_SIZE);
-                const tripsArray = Object.values(tripsData);
 
-                if (tripsArray.length < PAGE_SIZE) {
-                    setHasMore(false);
+        useEffect(() => {
+            if (!deviceId) return;
+
+            const fetchTrips = async () => {
+                setLoading(true);
+                try {
+                    let tripsData;
+                    if (timeRange != undefined) {
+                        const { since, end } = calculateDateRange(timeRange);
+                        tripsData = await getTrips(deviceId, since, end, page, PAGE_SIZE);
+                    } else {
+                        tripsData = await getTrips(deviceId);
+                    }
+                    const tripsArray = Object.values(tripsData);
+                    if (tripsArray.length < PAGE_SIZE) {
+                        setHasMore(false);
+                    }
+
+                    setTrips(prev => {
+                        const sortedNew = tripsArray.sort((a, b) =>
+                            new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+                        );
+                        return page === 0 ? sortedNew : [...prev, ...sortedNew];
+                    });
+                } catch (error) {
+                    console.error("Failed to fetch trips:", error);
+                } finally {
+                    setLoading(false);
                 }
+            };
 
-                setTrips(prev => {
-                    const sortedNew = tripsArray.sort((a, b) =>
-                        new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-                    );
-                    return page === 0 ? sortedNew : [...prev, ...sortedNew];
-                });
-            } catch (error) {
-                console.error("Failed to fetch trips:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTrips();
-    }, [deviceId, timeRange, page]);
-
+            fetchTrips();
+        }, [deviceId, timeRange, page]);
+    }
     return (
         <section className="space-y-4 mb-8">
             {/* Header Section inside the component */}
