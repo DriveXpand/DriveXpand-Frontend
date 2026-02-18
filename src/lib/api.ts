@@ -173,7 +173,9 @@ export async function deleteVehicleNote(
   deviceId: string,
   noteId: string
 ): Promise<void> {
-  return apiCall<void>(`/devices/${deviceId}/notes/${noteId}`)
+  return apiCall<void>(`/devices/${deviceId}/notes/${noteId}`, {
+    method: "DELETE"
+  })
 }
 
 export async function addVehiclesNotes(
@@ -191,8 +193,8 @@ export async function getVehicleNotes(
   deviceId: string,
   since?: Date,
   end?: Date,
-  page: number = 1,
-  pageSize: number = 10
+  page: number,
+  pageSize: number,
 ): Promise<VehicleNotes[]> {
 
   //TODO: since, end
