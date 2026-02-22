@@ -18,7 +18,7 @@ export function DrivingTimeChart({ data, title }: DrivingTimeChartProps) {
       <p className="section-title mb-4">{title}</p>
       <div className="h-[140px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
             <XAxis 
               dataKey="day" 
               axisLine={false}
@@ -29,7 +29,7 @@ export function DrivingTimeChart({ data, title }: DrivingTimeChartProps) {
               axisLine={false}
               tickLine={false}
               tick={{ fill: 'hsl(220, 10%, 45%)', fontSize: 11 }}
-              width={30}
+              width={35}
             />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               {data.map((entry, index) => (

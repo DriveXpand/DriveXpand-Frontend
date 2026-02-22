@@ -128,7 +128,7 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                             <div className="h-full flex items-center justify-center animate-pulse text-sm">Lade Telemetrie...</div>
                         ) : chartData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={chartData} margin={{ right: 10, left: -20 }}>
+                                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 35, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.5} />
                                     <XAxis 
                                         dataKey="time" 
@@ -139,20 +139,30 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                                     
                                     {/* Left Axis: Speed */}
                                     <YAxis 
-                                        yAxisId="left"
-                                        fontSize={10} 
-                                        unit=" km/h" 
-                                        stroke="hsl(var(--primary))"
-                                    />
+                                            yAxisId="left"
+                                            dataKey="speed"
+                                            fontSize={10} 
+                                            width={60} 
+                                            unit=" km/h" 
+                                            stroke="hsl(var(--primary))"
+                                            domain={[0, 'auto']}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
                                     
                                     {/* Right Axis: RPM */}
                                     <YAxis 
-                                        yAxisId="right"
-                                        orientation="right"
-                                        fontSize={10} 
-                                        unit=" rpm" 
-                                        stroke="#f59e0b" // Amber/Orange color for RPM
-                                    />
+                                            yAxisId="right"
+                                            dataKey="rpm"
+                                            orientation="right"
+                                            fontSize={10} 
+                                            width={50} 
+                                            unit=" rpm" 
+                                            stroke="#f59e0b"
+                                            domain={[0, 'auto']}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
                                     
                                     <Tooltip 
                                         contentStyle={{ backgroundColor: 'hsl(var(--background))', borderRadius: '8px', fontSize: '12px' }}
