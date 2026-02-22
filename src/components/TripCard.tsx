@@ -27,31 +27,29 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
 
     // Graph-Daten Transformation
     const chartData = useMemo(() => {
-        if (!details?.timed_data) return [];
-        
-        // 1. Alle Einträge aus allen Objekten in eine flache Liste extrahieren
-        const flattened = details.timed_data.flatMap(obj => 
-            Object.entries(obj).map(([instantStr, values]: [string, any]) => ({
-                timestamp: parseInt(instantStr),
-                speed: values?.speed || 0,
-                rpm: values?.rpm || 0
-            }))
-        );
+            if (!details?.timed_data) return [];
+            
+            const flattened = details.timed_data.flatMap(obj => 
+                Object.entries(obj).map(([instantStr, values]: [string, any]) => ({
+                    timestamp: parseInt(instantStr),
+                    // Using null instead of 0 for missing fields prevents false "0" readings in the UI
+                    speed: values && 'speed' in values ? values.speed : null,
+                    rpm: values && 'rpm' in values ? values.rpm : null
+                }))
+            );
 
-        // 2. Nach Zeitstempel sortieren (wichtig für die Linienführung im Graphen)
-        const sorted = flattened.sort((a, b) => a.timestamp - b.timestamp);
+            const sorted = flattened.sort((a, b) => a.timestamp - b.timestamp);
 
-        // 3. In das Recharts-Format mit formatierten Zeit-Labels umwandeln
-        return sorted.map(item => ({
-            time: new Date(item.timestamp * 1000).toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-            }),
-            speed: item.speed,
-            rpm: item.rpm
-        }));
-    }, [details]);
+            return sorted.map(item => ({
+                time: new Date(item.timestamp * 1000).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                }),
+                speed: item.speed,
+                rpm: item.rpm
+            }));
+        }, [details]);
 
     const toggleExpand = async () => {
         const nextState = !isExpanded;
@@ -130,12 +128,58 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                             <div className="h-full flex items-center justify-center animate-pulse text-sm">Lade Telemetrie...</div>
                         ) : chartData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={chartData}>
+                                <LineChart data={chartData} margin={{ right: 10, left: -20 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.5} />
-                                    <XAxis dataKey="time" fontSize={10} tickMargin={10} />
-                                    <YAxis fontSize={10} unit="km/h" />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="speed" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                                    <XAxis 
+                                        dataKey="time" 
+                                        fontSize={10} 
+                                        tickMargin={10} 
+                                        minTickGap={30}
+                                    />
+                                    
+                                    {/* Left Axis: Speed */}
+                                    <YAxis 
+                                        yAxisId="left"
+                                        fontSize={10} 
+                                        unit=" km/h" 
+                                        stroke="hsl(var(--primary))"
+                                    />
+                                    
+                                    {/* Right Axis: RPM */}
+                                    <YAxis 
+                                        yAxisId="right"
+                                        orientation="right"
+                                        fontSize={10} 
+                                        unit=" rpm" 
+                                        stroke="#f59e0b" // Amber/Orange color for RPM
+                                    />
+                                    
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: 'hsl(var(--background))', borderRadius: '8px', fontSize: '12px' }}
+                                    />
+                                    
+                                    {/* Speed Line */}
+                                    <Line 
+                                        yAxisId="left"
+                                        type="monotone" 
+                                        dataKey="speed" 
+                                        stroke="hsl(var(--primary))" 
+                                        strokeWidth={2} 
+                                        dot={false}
+                                        connectNulls // Bridges gaps in data if speed is missing
+                                    />
+
+                                    {/* RPM Line */}
+                                    <Line 
+                                        yAxisId="right"
+                                        type="monotone" 
+                                        dataKey="rpm" 
+                                        stroke="#f59e0b" 
+                                        strokeWidth={1.5} 
+                                        dot={false}
+                                        strokeDasharray="5 5" // Optional: makes it easier to distinguish from speed
+                                        connectNulls
+                                    />
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
