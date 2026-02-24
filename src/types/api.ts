@@ -32,6 +32,7 @@ export interface TripResponse {
   endTime: string; // date-time
   startLocation: string;
   endLocation: string;
+  note: string;
 }
 
 export interface TripDetailsResponse {
@@ -41,6 +42,8 @@ export interface TripDetailsResponse {
   endTime: string; // date-time
   startLocation: string;
   endLocation: string;
+  note: string;
+
   timed_data: Array<Record<string, unknown>>;
   aggregated_data: Array<Record<string, unknown>>;
 }
@@ -48,6 +51,7 @@ export interface TripDetailsResponse {
 export interface TripUpdateRequest {
   startLocation?: string;
   endLocation?: string;
+  note?: string;
 }
 
 export interface TripEntity extends TripResponse {

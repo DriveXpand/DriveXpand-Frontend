@@ -1,4 +1,4 @@
-import { Pencil, MapPin, X, Route, ChevronDown, ChevronUp, Activity, Gauge, Thermometer } from "lucide-react";
+import { Pencil, MapPin, X, Route, ChevronDown, ChevronUp, Activity, Gauge, Thermometer, Notebook } from "lucide-react";
 import type { TripEntity, TripDetailsResponse } from "../types/api";
 import { useState, useMemo } from 'react';
 import { updateTrip, getTripDetails } from "../lib/api";
@@ -18,9 +18,12 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [startLoc, setStartLoc] = useState(trip.startLocation || "");
     const [endLoc, setEndLoc] = useState(trip.endLocation || "");
-    
+    const [note, setNote] = useState(trip.note || "");
+
+    // for instant update of trip details, no refresh needed
     const [currentStartLoc, setCurrentStartLoc] = useState(trip.startLocation);
     const [currentEndLoc, setCurrentEndLoc] = useState(trip.endLocation);
+    const [currentNote, setCurrentNote] = useState(trip.note);
 
     // 1. Enhanced Data Transformation & Average Calculation
     const { chartData, averages } = useMemo(() => {
@@ -84,7 +87,7 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
         e.preventDefault();
         setIsSaving(true);
         try {
-            await updateTrip(trip.id, startLoc, endLoc);
+            await updateTrip(trip.id, startLoc, endLoc, note);
             setIsModalOpen(false);
             setCurrentStartLoc(startLoc);
             setCurrentEndLoc(endLoc);
@@ -118,6 +121,11 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                             <span className="truncate">{currentStartLoc || "Unbekannt"}</span>
                             <span className="text-muted-foreground">→</span>
                             <span className="truncate">{currentEndLoc || "Unbekannt"}</span>
+                            
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <Notebook className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="truncate">{currentNote || "~"}</span>
                         </div>
                     </div>
                     
@@ -204,6 +212,11 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                                 <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">Endlocation</label>
                                 <input className="text-sm w-full p-2 rounded border bg-secondary/20" value={endLoc} onChange={(e) => setEndLoc(e.target.value)} />
                             </div>
+                                                        <div>
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">Fahrtinformationen</label>
+                                <input className="text-sm w-full p-2 rounded border bg-secondary/20" value={note} onChange={(e) => setNote(e.target.value)} />
+                            </div>
+
                             <div className="flex gap-2 pt-2">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 border rounded hover:bg-secondary text-sm">Abbrechen</button>
                                 <button type="submit" disabled={isSaving} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded disabled:opacity-50 text-sm">

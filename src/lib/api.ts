@@ -154,11 +154,12 @@ export async function getTripsPerWeekday(
 export async function updateTrip(
   tripId: string,
   startLocation?: string,
-  endLocation?: string
+  endLocation?: string,
+  note?: string
 ): Promise<void> {
   return apiCall<void>(`/trips/${tripId}`, {
     method: "PATCH",
-    body: JSON.stringify({ startLocation, endLocation }),
+    body: JSON.stringify({ startLocation, endLocation, note }),
   });
 }
 
