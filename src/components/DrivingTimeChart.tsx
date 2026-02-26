@@ -14,9 +14,9 @@ export function DrivingTimeChart({ data, title }: DrivingTimeChartProps) {
   const maxValue = Math.max(...data.map(d => d.value ?? 0));
   
   return (
-    <div className="card-clean p-4">
+    <div className="card-clean p-6 h-full flex flex-col">
       <p className="section-title mb-4">{title}</p>
-      <div className="h-[140px]">
+      <div className="flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
             <XAxis 

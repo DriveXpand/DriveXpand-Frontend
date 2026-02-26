@@ -42,12 +42,13 @@ export default function Index() {
                         {/* Vehicle Stats */}
                         <VehicleStatsWrapper deviceId={deviceId} />
 
-
-                        {/* Weekday Chart */}
-                        <WeekdayChartWrapper deviceId={deviceId} />
-
-                        {/* Weekday Chart */}
-                        <TimeOfDayChartWrapper deviceId={deviceId}/>
+                        
+                        {/* Dashboard Charts Row */}
+                        <p className="section-title text-lg font-semibold mb-3">Wann fährst du?</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8 items-stretch min-h-[300px]">
+                            <WeekdayChartWrapper deviceId={deviceId} />
+                            <TimeOfDayChartWrapper deviceId={deviceId} />
+                        </div>
 
                         {/* Latest Trips List */}
                         <LatestTrips deviceId={deviceId} timeRange={timeRange} header={true} />

@@ -46,5 +46,9 @@ export function TimeOfDayChartWrapper({ deviceId }: TimeOfDayChartWrapperProps) 
 
     if (data.length === 0) return null;
 
-    return <TimeOfDayChart data={data} />;
+    return (
+    <div className="h-full"> 
+        <TimeOfDayChart data={data} />
+    </div>
+    );
 }

@@ -32,8 +32,7 @@ export function WeekdayChartWrapper({ deviceId }: { deviceId: string | null }) {
     if (data.length === 0) return null;
 
     return (
-        <section className="mb-8">
-            <p className="section-title text-lg font-semibold mb-3">Wann fährst du?</p>
+        <section className="h-full">
             <DrivingTimeChart data={data} title="Wochentage" />
         </section>
     );
