@@ -1,4 +1,4 @@
-import { Pencil, MapPin, X, Route, ChevronDown, ChevronUp, Activity, Gauge, Thermometer, Notebook } from "lucide-react";
+import { Pencil, MapPin, X, Route, ChevronDown, ChevronUp, Activity, Gauge, Thermometer, Notebook, Clock } from "lucide-react";
 import type { TripEntity, TripDetailsResponse } from "../types/api";
 import { useState, useMemo } from 'react';
 import { updateTrip, getTripDetails } from "../lib/api";
@@ -13,7 +13,7 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [details, setDetails] = useState<TripDetailsResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [startLoc, setStartLoc] = useState(trip.startLocation || "");
@@ -28,8 +28,8 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
     // 1. Enhanced Data Transformation & Average Calculation
     const { chartData, averages } = useMemo(() => {
         if (!details?.timed_data) return { chartData: [], averages: null };
-        
-        const flattened = details.timed_data.flatMap(obj => 
+
+        const flattened = details.timed_data.flatMap(obj =>
             Object.entries(obj).map(([instantStr, values]: [string, any]) => ({
                 timestamp: parseInt(instantStr),
                 speed: values?.speed ?? null,
@@ -49,8 +49,8 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
         };
 
         const processedData = sorted.map(item => ({
-            time: new Date(item.timestamp * 1000).toLocaleTimeString([], { 
-                hour: '2-digit', minute: '2-digit', second: '2-digit' 
+            time: new Date(item.timestamp * 1000).toLocaleTimeString([], {
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
             }),
             ...item
         }));
@@ -110,9 +110,15 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                                 {trip.startTime ? new Date(trip.startTime).toLocaleDateString() : 'N/A'}
                             </span>
                             {trip.trip_distance_km && (
-                                <div className="flex items-center gap-1 text-muted-foreground">
+                                <div className="flex items-center gap-2 text-muted-foreground">
                                     <Route className="w-3.5 h-3.5" />
                                     <span>{trip.trip_distance_km.toFixed(2)} km</span>
+                                    {trip.startTime && trip.endTime && (
+                                        <span className="flex items-center gap-2">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            {Math.round(Math.abs(new Date(trip.endTime).getTime() - new Date(trip.startTime).getTime()) / 60000)} min
+                                        </span>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -121,14 +127,14 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                             <span className="truncate">{currentStartLoc || "Unbekannt"}</span>
                             <span className="text-muted-foreground">→</span>
                             <span className="truncate">{currentEndLoc || "Unbekannt"}</span>
-                            
+
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                             <Notebook className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             <span className="truncate">{currentNote || "~"}</span>
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 ml-4">
                         <button onClick={(e) => { e.stopPropagation(); setIsModalOpen(true); }} className="p-2 hover:bg-secondary rounded-full">
                             <Pencil className="w-4 h-4 text-muted-foreground" />
@@ -146,11 +152,11 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                             <>
                                 {/* 2. Average Summary Bar */}
                                 <div className="grid grid-cols-5 gap-2 border-b pb-4">
-                                    <SummaryItem label="Avg Speed" value={`${averages?.speed.toFixed(1)} km/h`} icon={<Gauge className="w-3 h-3"/>} />
-                                    <SummaryItem label="Avg RPM" value={`${Math.round(averages?.rpm ?? 0)}`} icon={<Activity className="w-3 h-3"/>} />
+                                    <SummaryItem label="Avg Speed" value={`${averages?.speed.toFixed(1)} km/h`} icon={<Gauge className="w-3 h-3" />} />
+                                    <SummaryItem label="Avg RPM" value={`${Math.round(averages?.rpm ?? 0)}`} icon={<Activity className="w-3 h-3" />} />
                                     <SummaryItem label="Avg Load" value={`${averages?.load.toFixed(1)}%`} color="text-cyan-600" />
                                     <SummaryItem label="Avg Throttle" value={`${averages?.throttle.toFixed(1)}%`} color="text-purple-600" />
-                                    <SummaryItem label="Avg Temp" value={`${averages?.temp.toFixed(1)}°C`} icon={<Thermometer className="w-3 h-3"/>} color="text-rose-600" />
+                                    <SummaryItem label="Avg Temp" value={`${averages?.temp.toFixed(1)}°C`} icon={<Thermometer className="w-3 h-3" />} color="text-rose-600" />
                                 </div>
 
                                 {/* Chart 1: Speed & RPM */}
@@ -212,7 +218,7 @@ export function TripCard({ trip, onUpdate }: TripCardProps) {
                                 <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">Endlocation</label>
                                 <input className="text-sm w-full p-2 rounded border bg-secondary/20" value={endLoc} onChange={(e) => setEndLoc(e.target.value)} />
                             </div>
-                                                        <div>
+                            <div>
                                 <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">Fahrtinformationen</label>
                                 <input className="text-sm w-full p-2 rounded border bg-secondary/20" value={note} onChange={(e) => setNote(e.target.value)} />
                             </div>
