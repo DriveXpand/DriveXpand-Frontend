@@ -4,6 +4,10 @@ export interface DeviceEntity {
   name: string;
 }
 
+export interface TimeBucket {
+  label: string;
+  value: number;
+}
 // Telemetry
 export interface TelemetryResponse {
   id: string; // uuid

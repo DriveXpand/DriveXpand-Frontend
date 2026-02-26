@@ -8,6 +8,7 @@ import { LatestTrips } from "@/components/LatestTrips";
 import { WeekdayChartWrapper } from "@/components/WeekdayChartWrapper";
 import { VehicleStatsWrapper } from "@/components/VehicleStatsWrapper";
 import { VehicleNotesSection } from "@/components/VehicleNotesSection";
+import { TimeOfDayChartWrapper } from "@/components/TimeOfDayChartWrapper";
 
 export default function Index() {
     // --- Global State ---
@@ -41,8 +42,12 @@ export default function Index() {
                         {/* Vehicle Stats */}
                         <VehicleStatsWrapper deviceId={deviceId} />
 
+
                         {/* Weekday Chart */}
                         <WeekdayChartWrapper deviceId={deviceId} />
+
+                        {/* Weekday Chart */}
+                        <TimeOfDayChartWrapper deviceId={deviceId}/>
 
                         {/* Latest Trips List */}
                         <LatestTrips deviceId={deviceId} timeRange={timeRange} />

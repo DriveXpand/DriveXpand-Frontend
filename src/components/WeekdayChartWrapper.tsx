@@ -11,6 +11,7 @@ export function WeekdayChartWrapper({ deviceId }: { deviceId: string | null }) {
         const fetchData = async () => {
             try {
                 const rawData = await getTripsPerWeekday(deviceId);
+                console.log("DeviceId: ", deviceId)
                 const weekdayMap: Record<string, string> = {
                     MONDAY: "Mo", TUESDAY: "Di", WEDNESDAY: "Mi",
                     THURSDAY: "Do", FRIDAY: "Fr", SATURDAY: "Sa", SUNDAY: "So",
@@ -32,7 +33,7 @@ export function WeekdayChartWrapper({ deviceId }: { deviceId: string | null }) {
 
     return (
         <section className="mb-8">
-            <p className="section-title mb-3 font-semibold">Wann fährst du?</p>
+            <p className="section-title text-lg font-semibold mb-3">Wann fährst du?</p>
             <DrivingTimeChart data={data} title="Wochentage" />
         </section>
     );

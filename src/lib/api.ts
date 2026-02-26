@@ -1,4 +1,4 @@
-import type { DeviceEntity, TripDetailsResponse, TelemetryResponse, TripEntity, VehicleNotes, VehicleStats } from "../types/api";
+import type { DeviceEntity, TripDetailsResponse, TelemetryResponse, TripEntity, VehicleNotes, VehicleStats, TimeBucket} from "../types/api";
 
 const API_BASE_URL = "/api";
 
@@ -149,6 +149,19 @@ export async function getTripsPerWeekday(
     params.append("timeBetweenTripsInSeconds", timeBetweenTripsInSeconds.toString());
 
   return apiCall<Record<string, number>>(`/trips/weekday?${params}`);
+}
+
+export async function getDayTime(
+  deviceId: string,
+  since?: Date,
+  end?: Date,
+): Promise<TimeBucket[]> { 
+  const params = new URLSearchParams({ deviceId });
+  console.log(deviceId, "API")
+  if (since) params.append("since", since.toISOString());
+  if (end) params.append("end", end.toISOString());
+
+  return apiCall<TimeBucket[]>(`/trips/time-of-day?${params.toString()}`); 
 }
 
 export async function updateTrip(

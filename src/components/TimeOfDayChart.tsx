@@ -1,4 +1,4 @@
-import { TimeBucket } from "../types/api";
+import type { TimeBucket } from "../types/api";
 
 interface TimeOfDayChartProps {
   data: TimeBucket[];
@@ -6,7 +6,7 @@ interface TimeOfDayChartProps {
 
 export function TimeOfDayChart({ data }: TimeOfDayChartProps) {
   return (
-    <div className="card-clean p-4">
+    <div className="card-clean p-4 mb-4">
       <p className="section-title mb-4">Uhrzeiten</p>
       <div className="space-y-3">
         {data.map((slot, index) => (
