@@ -11,11 +11,13 @@ interface LatestTripsProps {
     deviceId: string | null;
     timeRange?: TimeRange;
     tripsData?: TripEntity[],
+    header?: boolean,
 }
 
-export function LatestTrips({ deviceId, timeRange, tripsData }: LatestTripsProps) {
+export function LatestTrips({ deviceId, timeRange, tripsData, header }: LatestTripsProps) {
     const navigate = useNavigate();
     const PAGE_SIZE = 5;
+    header = header ?? false;
 
     const [trips, setTrips] = useState<TripEntity[]>(tripsData ?? []);
     const [loading, setLoading] = useState(true);
@@ -69,16 +71,17 @@ export function LatestTrips({ deviceId, timeRange, tripsData }: LatestTripsProps
     }
     return (
         <section className="space-y-4 mb-8">
-            {/* Header Section inside the component */}
-            <div className="flex items-center justify-between">
-                <p className="section-title text-lg font-semibold">Letzte Fahrten</p>
-                <button
-                    onClick={() => deviceId && navigate(`/history?device=${deviceId}`)}
-                    className="text-sm text-primary hover:underline"
-                >
-                    Alle anzeigen
-                </button>
-            </div>
+            {header && (
+                <div className="flex items-center justify-between">
+                    <p className="section-title text-lg font-semibold">Letzte Fahrten</p>
+                    <button
+                        onClick={() => deviceId && navigate(`/history?device=${deviceId}`)}
+                        className="text-sm text-primary hover:underline"
+                    >
+                        Alle anzeigen
+                    </button>
+                </div>
+            )}
 
             {/* List Section */}
             <div className="space-y-2">

@@ -45,7 +45,7 @@ export default function Index() {
                         <WeekdayChartWrapper deviceId={deviceId} />
 
                         {/* Latest Trips List */}
-                        <LatestTrips deviceId={deviceId} timeRange={timeRange} />
+                        <LatestTrips deviceId={deviceId} timeRange={timeRange} header={true} />
 
                         {/* Notes */}
                         <VehicleNotesSection deviceId={deviceId} timeRange={timeRange} />
