@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Car, Pencil } from "lucide-react";
-import { getVehicleNotes, addVehiclesNotes, deleteVehicleNote, getVehicleImage, uploadVehicleImage } from "@/lib/api";
+import { getVehicleNotes, addVehiclesNotes, deleteVehicleNote, getVehicleImage, uploadVehicleImage, updateRepairNote } from "@/lib/api";
 import type { VehicleNotes } from "@/types/api";
 import { VehicleNoteCard } from "@/components/VehicleNoteCard";
 import { AddNoteModal } from "@/components/AddNoteModal";
@@ -17,11 +17,11 @@ export default function VehicleProfile() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    // Ref for hidden file input
+    // NEW: State for editing
+    const [editingNote, setEditingNote] = useState<VehicleNotes | null>(null);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Cleanup Object URLs to prevent memory leaks when the component unmounts
-    // or when the image URL changes.
     useEffect(() => {
         return () => {
             if (vehicleImage && vehicleImage.startsWith("blob:")) {
@@ -30,7 +30,6 @@ export default function VehicleProfile() {
         };
     }, [vehicleImage]);
 
-    // 1. Fetch Data
     useEffect(() => {
         if (!deviceId) return;
 
@@ -42,7 +41,6 @@ export default function VehicleProfile() {
                     getVehicleImage(deviceId)
                 ]);
 
-                // Sort notes by date descending
                 const sorted = fetchedNotes.sort((a, b) => new Date(b.noteDate).getTime() - new Date(a.noteDate).getTime());
                 setNotes(sorted);
                 setVehicleImage(fetchedImage);
@@ -56,7 +54,6 @@ export default function VehicleProfile() {
         fetchData();
     }, [deviceId]);
 
-    // 2. Handlers
     const handleAddNote = async (data: { noteDate: string; noteText: string; notePrice?: number }) => {
         if (!deviceId) return;
         try {
@@ -64,6 +61,25 @@ export default function VehicleProfile() {
             setNotes((prev) => [newNote, ...prev].sort((a, b) => new Date(b.noteDate).getTime() - new Date(a.noteDate).getTime()));
         } catch (error) {
             console.error("Failed to add note", error);
+        }
+    };
+
+    const handleEditNote = async (data: { noteDate: string; noteText: string; notePrice?: number }) => {
+        if (!deviceId || !editingNote) return;
+        try {
+            const updatedNote = await updateRepairNote(deviceId, editingNote.id, {
+                id: editingNote.id,
+                noteDate: data.noteDate,
+                noteText: data.noteText,
+                notePrice: data.notePrice,
+            });
+            setNotes((prev) =>
+                prev.map((n) => (n.id === editingNote.id ? updatedNote : n))
+                    .sort((a, b) => new Date(b.noteDate).getTime() - new Date(a.noteDate).getTime())
+            );
+            setEditingNote(null); // Close modal
+        } catch (error) {
+            console.error("Failed to update note", error);
         }
     };
 
@@ -84,29 +100,20 @@ export default function VehicleProfile() {
 
     const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!deviceId || !event.target.files || event.target.files.length === 0) return;
-
         const file = event.target.files[0];
         const previousImage = vehicleImage;
-
-        // Optimistic Update: Create a local URL so the UI updates instantly
         const localImageUrl = URL.createObjectURL(file);
         setVehicleImage(localImageUrl);
 
         try {
-            // Perform the upload
             await uploadVehicleImage(deviceId, file);
         } catch (error) {
             console.error("Failed to upload image", error);
             alert("Bild konnte nicht hochgeladen werden.");
-
-            // Revert to the old image if the upload fails
             setVehicleImage(previousImage);
             URL.revokeObjectURL(localImageUrl);
         } finally {
-            // Reset the input value so the user can select the same file again if needed
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-            }
+            if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
 
@@ -115,7 +122,6 @@ export default function VehicleProfile() {
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto py-6 max-w-2xl">
-
                 {/* Header */}
                 <div className="flex items-center mb-6 px-4 md:px-0">
                     <button onClick={() => navigate(-1)} className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -125,23 +131,16 @@ export default function VehicleProfile() {
                 </div>
 
                 <div className="space-y-8 px-4 md:px-0">
-
-                    {/* --- Image Section --- */}
+                    {/* Image Section */}
                     <div className="relative w-full aspect-video md:aspect-[21/9] bg-muted rounded-xl overflow-hidden shadow-sm border group">
                         {vehicleImage ? (
-                            <img
-                                src={vehicleImage}
-                                alt="Vehicle"
-                                className="w-full h-full object-cover"
-                            />
+                            <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover" />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
                                 <Car className="w-12 h-12 mb-2 opacity-50" />
                                 <span className="text-sm">Kein Bild vorhanden</span>
                             </div>
                         )}
-
-                        {/* Edit/Upload Button Overlay */}
                         <div className="absolute bottom-3 right-3">
                             <button
                                 onClick={() => fileInputRef.current?.click()}
@@ -160,7 +159,7 @@ export default function VehicleProfile() {
                         </div>
                     </div>
 
-                    {/* --- Notes Section --- */}
+                    {/* Notes Section */}
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -198,6 +197,8 @@ export default function VehicleProfile() {
                                         key={note.id}
                                         note={note}
                                         onDelete={() => handleDeleteNote(note.id)}
+                                        // Pass the note to the edit state
+                                        onEdit={() => setEditingNote(note)}
                                         isDeleting={deletingId === note.id}
                                     />
                                 ))}
@@ -207,11 +208,20 @@ export default function VehicleProfile() {
                 </div>
             </div>
 
-            {/* Modals */}
+            {/* Modal for Adding */}
             <AddNoteModal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 onSubmit={handleAddNote}
+            />
+
+            {/* Modal for Editing (Reusing AddNoteModal or similar) */}
+            <AddNoteModal
+                isOpen={!!editingNote}
+                onClose={() => setEditingNote(null)}
+                onSubmit={handleEditNote}
+                initialData={editingNote ?? undefined}
+                title="Notiz bearbeiten"
             />
         </div>
     );
