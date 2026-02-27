@@ -1,4 +1,4 @@
-import type { DeviceEntity, TripDetailsResponse, TelemetryResponse, TripEntity, VehicleNotes, VehicleStats, TimeBucket} from "../types/api";
+import type { DeviceEntity, TripDetailsResponse, TelemetryResponse, TripEntity, VehicleNotes, VehicleStats, TimeBucket } from "../types/api";
 
 const API_BASE_URL = "/api";
 
@@ -155,13 +155,13 @@ export async function getDayTime(
   deviceId: string,
   since?: Date,
   end?: Date,
-): Promise<TimeBucket[]> { 
+): Promise<TimeBucket[]> {
   const params = new URLSearchParams({ deviceId });
   console.log(deviceId, "API")
   if (since) params.append("since", since.toISOString());
   if (end) params.append("end", end.toISOString());
 
-  return apiCall<TimeBucket[]>(`/trips/time-of-day?${params.toString()}`); 
+  return apiCall<TimeBucket[]>(`/trips/time-of-day?${params.toString()}`);
 }
 
 export async function updateTrip(
@@ -218,6 +218,18 @@ export async function addVehiclesNotes(
   });
 }
 
+export async function updateRepairNote(
+  deviceId: string,
+  noteId: string,
+  payload: VehicleNotes
+): Promise<VehicleNotes> {
+
+  return apiCall<any>(`/devices/${deviceId}/notes/${noteId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getVehicleNotes(
   deviceId: string,
   since?: Date,
@@ -226,55 +238,68 @@ export async function getVehicleNotes(
   pageSize?: number,
 ): Promise<VehicleNotes[]> {
 
-  //TODO: since, end
-
   const params = new URLSearchParams({ deviceId });
 
   if (page != undefined) params.append("page", page.toString());
   if (pageSize) params.append("pageSize", pageSize.toString());
 
-  return apiCall<VehicleNotes[]>(`/devices/${deviceId}/notes?${params}`);
+  // 1. Fetch the data from the backend
+  const notes = await apiCall<VehicleNotes[]>(`/devices/${deviceId}/notes?${params}`);
+
+  // 2. Filter the results on the frontend
+  return notes.filter((note) => {
+    const noteTime = new Date(note.noteDate).getTime();
+
+    if (since && noteTime < since.getTime()) {
+      return false;
+    }
+    if (end && noteTime > end.getTime()) {
+      return false;
+    }
+
+    return true;
+  });
 }
 
 export async function uploadVehicleImage(
-    deviceId: string,
-    file: File
+  deviceId: string,
+  file: File
 ): Promise<void> {
-    const formData = new FormData();
-    formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-    const response = await fetch(`/api/devices/${deviceId}/photo`, {
-        method: "PATCH",
-        // Note: Do NOT set the 'Content-Type' header here. 
-        // fetch automatically sets it to 'multipart/form-data' with the correct boundary.
-        body: formData,
-        // headers: { Authorization: `Bearer ${token}` } // Add if needed
-    });
+  const response = await fetch(`/api/devices/${deviceId}/photo`, {
+    method: "PATCH",
+    // Note: Do NOT set the 'Content-Type' header here. 
+    // fetch automatically sets it to 'multipart/form-data' with the correct boundary.
+    body: formData,
+    // headers: { Authorization: `Bearer ${token}` } // Add if needed
+  });
 
-    if (!response.ok) {
-        throw new Error(`Upload failed with status: ${response.status}`);
-    }
+  if (!response.ok) {
+    throw new Error(`Upload failed with status: ${response.status}`);
+  }
 }
 
 export async function getVehicleImage(
-    deviceId: string
+  deviceId: string
 ): Promise<string | null> {
-    try {
-        const response = await fetch(`/api/devices/${deviceId}/photo`);
-        
-        if (response.status === 404) {
-            return null; // No photo exists yet
-        }
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.status}`);
-        }
+  try {
+    const response = await fetch(`/api/devices/${deviceId}/photo`);
 
-        // Convert the binary response into a Blob, then into a local Object URL
-        const blob = await response.blob();
-        return URL.createObjectURL(blob);
-    } catch (error) {
-        console.error("Error fetching vehicle image:", error);
-        return null;
+    if (response.status === 404) {
+      return null; // No photo exists yet
     }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+
+    // Convert the binary response into a Blob, then into a local Object URL
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error("Error fetching vehicle image:", error);
+    return null;
+  }
 }

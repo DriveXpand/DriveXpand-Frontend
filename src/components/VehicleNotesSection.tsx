@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 
 interface VehicleNotesSectionProps {
     deviceId: string | null;
-    timeRange: TimeRange;
+    timeRange?: TimeRange;
 }
 
 export function VehicleNotesSection({ deviceId, timeRange }: VehicleNotesSectionProps) {
@@ -41,15 +41,15 @@ export function VehicleNotesSection({ deviceId, timeRange }: VehicleNotesSection
             }
 
             try {
-                const { since, end } = calculateDateRange(timeRange);
+                let data;
 
-                const data = await getVehicleNotes(
-                    deviceId,
-                    since,
-                    end,
-                    page,
-                    PAGE_SIZE
-                );
+                // Conditionally apply the time range filter
+                if (timeRange != undefined) {
+                    const { since, end } = calculateDateRange(timeRange);
+                    data = await getVehicleNotes(deviceId, since, end, page, PAGE_SIZE);
+                } else {
+                    data = await getVehicleNotes(deviceId, undefined, undefined, page, PAGE_SIZE);
+                }
 
                 // Check if we reached the end
                 if (data.length < PAGE_SIZE) {
@@ -59,7 +59,7 @@ export function VehicleNotesSection({ deviceId, timeRange }: VehicleNotesSection
                 setNotes((prev) => {
                     // Sort descending by date
                     const sortedNew = data.sort((a, b) =>
-                        new Date(b.date).getTime() - new Date(a.date).getTime()
+                        new Date(b.noteDate).getTime() - new Date(a.noteDate).getTime()
                     );
 
                     if (page === 0) {
@@ -91,7 +91,7 @@ export function VehicleNotesSection({ deviceId, timeRange }: VehicleNotesSection
     return (
         <section className="space-y-4 mb-8">
             <div className="flex items-center justify-between">
-            <p className="section-title text-lg font-semibold">Fahrzeugnotizen</p>
+                <p className="section-title text-lg font-semibold">Fahrzeugnotizen</p>
                 <button
                     onClick={() => deviceId && navigate(`/notes?device=${deviceId}`)}
                     className="text-sm text-primary hover:underline"
@@ -100,12 +100,14 @@ export function VehicleNotesSection({ deviceId, timeRange }: VehicleNotesSection
                 </button>
             </div>
 
-            <VehicleNotesList
-                notes={notes}
-                onLoadMore={handleLoadMore}
-                loading={isFetchingMore}
-                hasMore={hasMore}
-            />
+            {deviceId && (
+                <VehicleNotesList
+                    notes={notes}
+                    onLoadMore={handleLoadMore}
+                    loading={isFetchingMore}
+                    hasMore={hasMore}
+                />
+            )}
         </section>
     );
 }
